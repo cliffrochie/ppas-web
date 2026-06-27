@@ -1,0 +1,3 @@
+- [Project Stack & Setup](project-stack-setup.md) — ppas-web runtime stack, versions, Shadcn CLI quirk, TS6 deprecations
+- [Auth Store Shape](auth-store-shape.md) — Zustand auth store field names and hasHydrated hydration pattern
+- [Auth Feature Conventions](auth-feature-conventions.md) — identifier field naming, API contract, social button stubs, form patterns
