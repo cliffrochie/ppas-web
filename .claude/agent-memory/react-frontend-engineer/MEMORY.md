@@ -1,3 +1,5 @@
 - [Project Stack & Setup](project-stack-setup.md) — ppas-web runtime stack, versions, Shadcn CLI quirk, TS6 deprecations
 - [Auth Store Shape](auth-store-shape.md) — Zustand auth store field names and hasHydrated hydration pattern
 - [Auth Feature Conventions](auth-feature-conventions.md) — identifier field naming, API contract, social button stubs, form patterns
+- [Routing & Layout Patterns](project-routing-layout-patterns.md) — multi-role layout structure, RequesterLayout top-nav pattern, route group conventions
+- [Global Entity Types](global-entity-types.md) — src/types/entities/ layout, decimal-as-string pattern, const+type alias barrel rule, requests feature re-export aliases

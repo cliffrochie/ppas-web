@@ -29,5 +29,13 @@ ppas-web was scaffolded from Vite 8 + React 19 + TypeScript 6.
 
 **ESLint:** `react-refresh/only-export-components` set to `warn` with `allowConstantExport: true`. Rule disabled in `src/components/ui/**`, `src/testing/**`, and `src/app/router.tsx`.
 
+**Zod v4 error API:** `required_error` and `invalid_type_error` were removed. Use `{ message: '...' }` for all custom error messages in schema constructors (e.g. `z.number({ message: 'Enter a valid number' })`). Range/string validators still use the second string arg: `.min(1, 'Required')`.
+
+**base-ui Select onValueChange:** The `onValueChange` callback type is `(value: string | null, eventDetails) => void` — always handle the `null` case when converting to a number for RHF Controller. Pattern: `onValueChange={(val) => field.onChange(val !== null ? Number(val) : undefined)}`.
+
+**No textarea Shadcn component:** There is no `<Textarea>` in `src/components/ui/`. Use a native `<textarea>` with the same Tailwind border/ring classes as `Input` for visual consistency.
+
+**Shadcn Select disabled items:** To render a loading/empty state in `<SelectContent>`, use `<SelectItem value="__placeholder__" disabled>`. Empty string values cause type errors with base-ui.
+
 **Why:** Blueprint mandates react-router-dom (not TanStack Router). Vite 8 bundles with rolldown. React Compiler active via babel preset.
 **How to apply:** When adding new features, trust these versions are in place. When updating schemas, be explicit with Zod v4 message syntax. When adding Shadcn components use `npx shadcn@latest add <name> --yes`.

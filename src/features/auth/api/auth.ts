@@ -37,7 +37,7 @@ export const useLogin = () => {
     mutationFn: authApi.login,
     onSuccess: (response) => {
       setAuth(response.data.token, response.data.user);
-      navigate('/');
+      navigate('/requests');
     },
   });
 };

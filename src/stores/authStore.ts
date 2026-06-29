@@ -1,19 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-export interface AuthUser {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-}
+import type { User } from '@/types';
 
 interface AuthState {
   token: string | null;
-  user: AuthUser | null;
+  user: User | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
-  setAuth: (token: string, user: AuthUser) => void;
+  setAuth: (token: string, user: User) => void;
   clearAuth: () => void;
   setHasHydrated: (value: boolean) => void;
 }

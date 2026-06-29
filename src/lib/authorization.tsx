@@ -5,7 +5,7 @@ export const useAuthorization = () => {
 
   const hasRole = (roles: string[]): boolean => {
     if (!user) return false;
-    return roles.includes(user.role);
+    return roles.includes(user.role?.name ?? '');
   };
 
   return { user, hasRole };

@@ -1,4 +1,4 @@
-import type { AuthUser } from '@/stores/authStore';
+import type { User } from '@/types';
 
 export interface LoginCredentials {
   /** Accepts username or email address */
@@ -8,7 +8,7 @@ export interface LoginCredentials {
 
 export interface LoginResponseData {
   token: string;
-  user: AuthUser;
+  user: User;
 }
 
 export interface RegisterPayload {
