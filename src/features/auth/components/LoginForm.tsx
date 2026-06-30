@@ -69,7 +69,7 @@ export const LoginForm = () => {
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: {
-      identifier: '',
+      email: '',
       password: '',
     },
   });
@@ -97,25 +97,25 @@ export const LoginForm = () => {
   return (
     <div className="flex w-full flex-col gap-4">
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        {/* Username or email field */}
+        {/* Email field */}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="identifier">Username or email address</Label>
+          <Label htmlFor="email">Email address</Label>
           <Input
-            id="identifier"
-            type="text"
-            autoComplete="username"
+            id="email"
+            type="email"
+            autoComplete="email"
             autoFocus
-            aria-invalid={!!errors.identifier}
-            aria-describedby={errors.identifier ? 'identifier-error' : undefined}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
             className={cn(
               'h-10 rounded-lg px-3',
-              errors.identifier && 'border-destructive',
+              errors.email && 'border-destructive',
             )}
-            {...register('identifier')}
+            {...register('email')}
           />
-          {errors.identifier && (
-            <p id="identifier-error" className="text-destructive text-xs">
-              {errors.identifier.message}
+          {errors.email && (
+            <p id="email-error" className="text-destructive text-xs">
+              {errors.email.message}
             </p>
           )}
         </div>

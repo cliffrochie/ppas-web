@@ -1,8 +1,7 @@
 import type { User } from '@/types';
 
 export interface LoginCredentials {
-  /** Accepts username or email address */
-  identifier: string;
+  email: string;
   password: string;
 }
 

@@ -512,7 +512,12 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
                           errors.category_id && 'border-destructive',
                         )}
                       >
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue>
+                          {(value: string | null) => {
+                            if (!value) return 'Select category';
+                            return categories.find((c) => String(c.id) === value)?.name ?? value;
+                          }}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {categoriesLoading ? (
