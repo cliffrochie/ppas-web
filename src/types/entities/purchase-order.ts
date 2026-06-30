@@ -8,7 +8,9 @@ export const PurchaseOrderStatus = {
   ForSignature: 'for_signature',
   Signed: 'signed',
   Acknowledged: 'acknowledged',
+  ForCompletion: 'for_completion',
   Completed: 'completed',
+  Failed: 'failed',
 } as const;
 
 export type PurchaseOrderStatus =

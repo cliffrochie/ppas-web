@@ -11,7 +11,8 @@ import {
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Paperclip } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,8 +26,9 @@ import {
 import { cn } from '@/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { isApiValidationError } from '@/types';
+import type { PurchaseRequest } from '@/types';
 import { useCategories } from '../api/categories';
-import { useCreateRequest, requestsApi } from '../api/requests';
+import { useCreateRequest, useUpdateRequest, requestsApi } from '../api/requests';
 
 // ─── Zod schema ──────────────────────────────────────────────────────────────
 
@@ -241,16 +243,27 @@ const DEFAULT_ITEM = {
   specifications: '',
 } as const;
 
-export const CreateRequestForm = () => {
+interface RequestFormProps {
+  request?: PurchaseRequest;
+}
+
+export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const createMutation = useCreateRequest();
+  const updateMutation = useUpdateRequest(request?.id ?? 0);
 
   // File attachment state — not in RHF because files are uploaded after PR creation
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Existing attachments managed in local state so removals show instantly
+  const [existingAttachments, setExistingAttachments] = useState(
+    request?.attachments ?? [],
+  );
 
   // Tracks which button triggered the submit so onSubmit can distinguish draft vs submit
   const intentRef = useRef<'submit' | 'draft'>('submit');
@@ -265,12 +278,24 @@ export const CreateRequestForm = () => {
     resolver: zodResolver(createRequestSchema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    defaultValues: {
-      end_user_name: '',
-      category_id: undefined,
-      purpose: '',
-      items: [{ ...DEFAULT_ITEM }],
-    },
+    defaultValues: request
+      ? {
+          end_user_name: request.end_user_name ?? '',
+          category_id: request.category_id ?? undefined,
+          purpose: request.purpose ?? '',
+          items: (request.items ?? []).map((item) => ({
+            item_description: item.item_description,
+            unit_cost: parseFloat(item.unit_cost),
+            quantity: parseFloat(item.quantity),
+            specifications: item.specifications ?? '',
+          })),
+        }
+      : {
+          end_user_name: '',
+          category_id: undefined,
+          purpose: '',
+          items: [{ ...DEFAULT_ITEM }],
+        },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
@@ -316,9 +341,60 @@ export const CreateRequestForm = () => {
   const removeFile = (idx: number) =>
     setFiles((prev) => prev.filter((_, i) => i !== idx));
 
+  // ── Existing attachment deletion (edit mode only) ─────────────────────────
+
+  const handleDeleteExisting = async (attId: number) => {
+    if (!request) return;
+    await requestsApi.deleteAttachment(request.id, attId);
+    setExistingAttachments((prev) => prev.filter((a) => a.id !== attId));
+    queryClient.invalidateQueries({ queryKey: ['requests', request.id] });
+  };
+
   // ── Form submission ───────────────────────────────────────────────────────
 
   const onSubmit = async (values: CreateRequestFormValues) => {
+    if (request) {
+      // Edit mode — PATCH the request then upload any new attachments
+      try {
+        await updateMutation.mutateAsync({
+          end_user_name: values.end_user_name,
+          category_id: values.category_id,
+          purpose: values.purpose,
+          items: values.items.map((item) => ({
+            item_description: item.item_description,
+            specifications: item.specifications || undefined,
+            unit_of_measure: 'unit',
+            quantity: item.quantity,
+            unit_cost: item.unit_cost,
+          })),
+        });
+
+        if (files.length > 0) {
+          await Promise.allSettled(
+            files.map((file) => requestsApi.uploadAttachment(request.id, file)),
+          );
+        }
+
+        navigate(`/requests/${request.id}`);
+      } catch (error) {
+        if (isApiValidationError(error)) {
+          Object.entries(error.errors).forEach(([field, messages]) => {
+            setError(field as keyof CreateRequestFormValues, {
+              type: 'server',
+              message: messages[0],
+            });
+          });
+        } else {
+          setError('root', {
+            type: 'server',
+            message: 'Failed to update the request. Please try again.',
+          });
+        }
+      }
+      return;
+    }
+
+    // Create mode
     const isDraft = intentRef.current === 'draft';
 
     if (!user?.office_id) {
@@ -583,7 +659,38 @@ export const CreateRequestForm = () => {
                 />
               </div>
 
-              {/* Attached files list */}
+              {/* Existing attachments (edit mode only) */}
+              {existingAttachments.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-medium text-gray-500">Existing Attachments</p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center gap-2 rounded-lg border border-border bg-gray-50 px-3 py-2"
+                      >
+                        <Paperclip className="size-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+                        <span className="max-w-[160px] truncate text-xs font-medium text-gray-700">
+                          {att.file_name}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatFileSize(att.file_size)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteExisting(att.id)}
+                          aria-label={`Delete ${att.file_name}`}
+                          className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
+                        >
+                          <X className="size-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Newly staged files list */}
               {files.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {files.map((file, i) => (
@@ -638,7 +745,7 @@ export const CreateRequestForm = () => {
             )}
 
             <div className="mt-6 space-y-2">
-              {/* Submit Request */}
+              {/* Submit / Update Request */}
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -647,23 +754,23 @@ export const CreateRequestForm = () => {
                 }}
                 className="h-10 w-full bg-green-700 text-white hover:bg-green-800 focus-visible:ring-green-700/50"
               >
-                {isSubmitting && intentRef.current === 'submit'
-                  ? 'Submitting...'
-                  : 'Submit Request'}
+                {isSubmitting ? 'Saving...' : request ? 'Update Request' : 'Submit Request'}
               </Button>
 
-              {/* Save Draft */}
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={() => {
-                  intentRef.current = 'draft';
-                }}
-                className="h-10 w-full"
-              >
-                {isSubmitting && intentRef.current === 'draft' ? 'Saving...' : 'Save Draft'}
-              </Button>
+              {/* Save Draft — create mode only */}
+              {!request && (
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    intentRef.current = 'draft';
+                  }}
+                  className="h-10 w-full"
+                >
+                  {isSubmitting && intentRef.current === 'draft' ? 'Saving...' : 'Save Draft'}
+                </Button>
+              )}
             </div>
           </div>
 

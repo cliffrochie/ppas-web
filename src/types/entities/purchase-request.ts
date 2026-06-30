@@ -1,6 +1,7 @@
 import type { Category } from './category';
 import type { Office } from './office';
 import type { User } from './user';
+import type { PurchaseOrder } from './purchase-order';
 
 // ─── Status & attachment-type enums ────────────────────────────────────────
 
@@ -51,6 +52,7 @@ export interface PurchaseRequest {
   rf_number: string | null;
   /** Null until PPU prepares the formal PR document (forwarded_to_ppu → pr_prepared) */
   pr_number: string | null;
+  end_user_name: string | null;
   requester_id: number;
   requesting_office_id: number;
   category_id: number | null;
@@ -58,6 +60,8 @@ export interface PurchaseRequest {
   status: PurchaseRequestStatus;
   /** Encoded by Budget Officer on approval; also stored in pr_status_histories */
   alobs_number: string | null;
+  /** Fund source code (e.g. "GAA 2025") — set during budget approval */
+  fund_source: string | null;
   /** Decimal stored as string to preserve precision */
   total_amount: string;
   submitted_at: string | null;
@@ -70,6 +74,7 @@ export interface PurchaseRequest {
   items?: PurchaseRequestItem[];
   attachments?: PrAttachment[];
   status_histories?: PrStatusHistory[];
+  purchase_order?: PurchaseOrder;
 }
 
 export interface PurchaseRequestItem {
@@ -138,6 +143,7 @@ export interface CreatePurchaseRequestPayload {
 }
 
 export interface UpdatePurchaseRequestPayload {
+  end_user_name?: string;
   requesting_office_id?: number;
   category_id?: number | null;
   purpose?: string;
