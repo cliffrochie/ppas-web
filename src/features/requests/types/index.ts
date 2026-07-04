@@ -1,4 +1,4 @@
-import type { PurchaseRequest, CreatePurchaseRequestItemPayload } from '@/types';
+import type { PurchaseRequest, PurchaseRequestStatus } from '@/types';
 
 /**
  * Feature-level alias for `PurchaseRequest`.
@@ -29,15 +29,14 @@ export interface RequestSortState {
 }
 
 /**
- * API payload for creating a new purchase request.
- * Extends the shared payload with `end_user_name` (shown in the create form)
- * and the optional `is_draft` flag for the "Save Draft" action.
+ * API payload for `POST /purchase-requests`. Line items are NOT included here —
+ * the backend has no inline `items` field; each item is created afterwards via
+ * a separate `POST /purchase-request-items` call once the PR's id is known.
  */
 export interface CreateRequestPayload {
-  end_user_name: string;
+  requester_id: number;
   requesting_office_id: number;
   category_id?: number;
   purpose: string;
-  items: CreatePurchaseRequestItemPayload[];
-  is_draft?: boolean;
+  status: PurchaseRequestStatus;
 }

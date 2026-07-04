@@ -26,6 +26,39 @@ interface AbstractOfQuotationFilters {
   page?: number;
 }
 
+// StoreAbstractOfQuotationRequest/Update... accept a multipart `file` upload
+// (nullable); `file_path` in the shared payload types is stale/server-derived.
+export type CreateAbstractOfQuotationInput = Omit<
+  CreateAbstractOfQuotationPayload,
+  'file_path'
+> & { file?: File };
+export type UpdateAbstractOfQuotationInput = Omit<
+  UpdateAbstractOfQuotationPayload,
+  'file_path'
+> & { file?: File };
+
+const buildAbstractFormData = (
+  payload: CreateAbstractOfQuotationInput | UpdateAbstractOfQuotationInput,
+): FormData => {
+  const formData = new FormData();
+  if ('rfq_id' in payload && payload.rfq_id !== undefined) {
+    formData.append('rfq_id', String(payload.rfq_id));
+  }
+  if (payload.prepared_by_id !== undefined) {
+    formData.append('prepared_by_id', String(payload.prepared_by_id));
+  }
+  if (payload.recommended_supplier) {
+    formData.append('recommended_supplier', payload.recommended_supplier);
+  }
+  if (payload.recommended_amount !== undefined && payload.recommended_amount !== null) {
+    formData.append('recommended_amount', String(payload.recommended_amount));
+  }
+  if (payload.status) formData.append('status', payload.status);
+  if (payload.approved_at) formData.append('approved_at', payload.approved_at);
+  if (payload.file) formData.append('file', payload.file);
+  return formData;
+};
+
 const abstractsApi = {
   list: async (
     filters: AbstractOfQuotationFilters,
@@ -40,17 +73,36 @@ const abstractsApi = {
   },
 
   create: async (
-    payload: CreateAbstractOfQuotationPayload,
+    payload: CreateAbstractOfQuotationInput,
   ): Promise<ApiResponse<AbstractOfQuotation>> => {
-    const { data } = await api.post('/abstracts-of-quotation', payload);
+    const { data } = await api.post('/abstracts-of-quotation', buildAbstractFormData(payload), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
   update: async (
     id: number,
-    payload: UpdateAbstractOfQuotationPayload,
+    payload: UpdateAbstractOfQuotationInput,
   ): Promise<ApiResponse<AbstractOfQuotation>> => {
-    const { data } = await api.patch(`/abstracts-of-quotation/${id}`, payload);
+    if (!payload.file) {
+      // No new file — plain JSON PATCH (also the only way to null out fields)
+      const { data } = await api.patch(`/abstracts-of-quotation/${id}`, {
+        prepared_by_id: payload.prepared_by_id,
+        recommended_supplier: payload.recommended_supplier,
+        recommended_amount: payload.recommended_amount,
+        status: payload.status,
+        approved_at: payload.approved_at,
+      });
+      return data;
+    }
+
+    // Replacing the file — multipart POST with Laravel method-spoofing
+    const formData = buildAbstractFormData(payload);
+    formData.append('_method', 'PATCH');
+    const { data } = await api.post(`/abstracts-of-quotation/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
@@ -78,7 +130,7 @@ export const useCreateAbstractOfQuotation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateAbstractOfQuotationPayload) => abstractsApi.create(payload),
+    mutationFn: (payload: CreateAbstractOfQuotationInput) => abstractsApi.create(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['abstracts-of-quotation'] });
       toast.success(response.message);
@@ -90,7 +142,7 @@ export const useUpdateAbstractOfQuotation = (id: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: UpdateAbstractOfQuotationPayload) => abstractsApi.update(id, payload),
+    mutationFn: (payload: UpdateAbstractOfQuotationInput) => abstractsApi.update(id, payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['abstracts-of-quotation', id] });
       queryClient.invalidateQueries({ queryKey: ['abstracts-of-quotation'] });
@@ -122,6 +174,32 @@ interface BacResolutionFilters {
   page?: number;
 }
 
+// StoreBacResolutionRequest requires a multipart `file` upload on create;
+// UpdateBacResolutionRequest requires it only when replacing the document.
+// `file_path` in the shared payload types is stale/server-derived.
+export type CreateBacResolutionInput = Omit<CreateBacResolutionPayload, 'file_path'> & {
+  file: File;
+};
+export type UpdateBacResolutionInput = Omit<UpdateBacResolutionPayload, 'file_path'> & {
+  file?: File;
+};
+
+const buildBacResolutionFormData = (
+  payload: CreateBacResolutionInput | UpdateBacResolutionInput,
+): FormData => {
+  const formData = new FormData();
+  if (payload.resolution_number) formData.append('resolution_number', payload.resolution_number);
+  if ('abstract_of_quotation_id' in payload && payload.abstract_of_quotation_id !== undefined) {
+    formData.append('abstract_of_quotation_id', String(payload.abstract_of_quotation_id));
+  }
+  if (payload.prepared_by_id !== undefined) {
+    formData.append('prepared_by_id', String(payload.prepared_by_id));
+  }
+  if (payload.issued_at) formData.append('issued_at', payload.issued_at);
+  if (payload.file) formData.append('file', payload.file);
+  return formData;
+};
+
 const bacResolutionsApi = {
   list: async (filters: BacResolutionFilters): Promise<PaginatedResponse<BacResolution>> => {
     const { data } = await api.get('/bac-resolutions', { params: filters });
@@ -133,16 +211,35 @@ const bacResolutionsApi = {
     return data;
   },
 
-  create: async (payload: CreateBacResolutionPayload): Promise<ApiResponse<BacResolution>> => {
-    const { data } = await api.post('/bac-resolutions', payload);
+  create: async (payload: CreateBacResolutionInput): Promise<ApiResponse<BacResolution>> => {
+    const { data } = await api.post(
+      '/bac-resolutions',
+      buildBacResolutionFormData(payload),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return data;
   },
 
   update: async (
     id: number,
-    payload: UpdateBacResolutionPayload,
+    payload: UpdateBacResolutionInput,
   ): Promise<ApiResponse<BacResolution>> => {
-    const { data } = await api.patch(`/bac-resolutions/${id}`, payload);
+    if (!payload.file) {
+      // No new file — plain JSON PATCH
+      const { data } = await api.patch(`/bac-resolutions/${id}`, {
+        resolution_number: payload.resolution_number,
+        prepared_by_id: payload.prepared_by_id,
+        issued_at: payload.issued_at,
+      });
+      return data;
+    }
+
+    // Replacing the file — multipart POST with Laravel method-spoofing
+    const formData = buildBacResolutionFormData(payload);
+    formData.append('_method', 'PATCH');
+    const { data } = await api.post(`/bac-resolutions/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
@@ -170,7 +267,7 @@ export const useCreateBacResolution = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateBacResolutionPayload) => bacResolutionsApi.create(payload),
+    mutationFn: (payload: CreateBacResolutionInput) => bacResolutionsApi.create(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['bac-resolutions'] });
       toast.success(response.message);
@@ -182,7 +279,7 @@ export const useUpdateBacResolution = (id: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: UpdateBacResolutionPayload) => bacResolutionsApi.update(id, payload),
+    mutationFn: (payload: UpdateBacResolutionInput) => bacResolutionsApi.update(id, payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['bac-resolutions', id] });
       queryClient.invalidateQueries({ queryKey: ['bac-resolutions'] });
@@ -213,6 +310,33 @@ interface NoticeOfAwardFilters {
   page?: number;
 }
 
+// StoreNoticeOfAwardRequest requires a multipart `file` upload on create;
+// Update requires it only when replacing the document. `file_path` in the
+// shared payload types is stale/server-derived.
+export type CreateNoticeOfAwardInput = Omit<CreateNoticeOfAwardPayload, 'file_path'> & {
+  file: File;
+};
+export type UpdateNoticeOfAwardInput = Omit<UpdateNoticeOfAwardPayload, 'file_path'> & {
+  file?: File;
+};
+
+const buildNoticeOfAwardFormData = (
+  payload: CreateNoticeOfAwardInput | UpdateNoticeOfAwardInput,
+): FormData => {
+  const formData = new FormData();
+  if (payload.noa_number) formData.append('noa_number', payload.noa_number);
+  if ('bac_resolution_id' in payload && payload.bac_resolution_id !== undefined) {
+    formData.append('bac_resolution_id', String(payload.bac_resolution_id));
+  }
+  if (payload.awarded_supplier) formData.append('awarded_supplier', payload.awarded_supplier);
+  if (payload.awarded_amount !== undefined) {
+    formData.append('awarded_amount', String(payload.awarded_amount));
+  }
+  if (payload.issued_at) formData.append('issued_at', payload.issued_at);
+  if (payload.file) formData.append('file', payload.file);
+  return formData;
+};
+
 const noticesOfAwardApi = {
   list: async (filters: NoticeOfAwardFilters): Promise<PaginatedResponse<NoticeOfAward>> => {
     const { data } = await api.get('/notices-of-award', { params: filters });
@@ -224,16 +348,36 @@ const noticesOfAwardApi = {
     return data;
   },
 
-  create: async (payload: CreateNoticeOfAwardPayload): Promise<ApiResponse<NoticeOfAward>> => {
-    const { data } = await api.post('/notices-of-award', payload);
+  create: async (payload: CreateNoticeOfAwardInput): Promise<ApiResponse<NoticeOfAward>> => {
+    const { data } = await api.post(
+      '/notices-of-award',
+      buildNoticeOfAwardFormData(payload),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return data;
   },
 
   update: async (
     id: number,
-    payload: UpdateNoticeOfAwardPayload,
+    payload: UpdateNoticeOfAwardInput,
   ): Promise<ApiResponse<NoticeOfAward>> => {
-    const { data } = await api.patch(`/notices-of-award/${id}`, payload);
+    if (!payload.file) {
+      // No new file — plain JSON PATCH
+      const { data } = await api.patch(`/notices-of-award/${id}`, {
+        noa_number: payload.noa_number,
+        awarded_supplier: payload.awarded_supplier,
+        awarded_amount: payload.awarded_amount,
+        issued_at: payload.issued_at,
+      });
+      return data;
+    }
+
+    // Replacing the file — multipart POST with Laravel method-spoofing
+    const formData = buildNoticeOfAwardFormData(payload);
+    formData.append('_method', 'PATCH');
+    const { data } = await api.post(`/notices-of-award/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
@@ -261,7 +405,7 @@ export const useCreateNoticeOfAward = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateNoticeOfAwardPayload) => noticesOfAwardApi.create(payload),
+    mutationFn: (payload: CreateNoticeOfAwardInput) => noticesOfAwardApi.create(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['notices-of-award'] });
       toast.success(response.message);
@@ -273,7 +417,7 @@ export const useUpdateNoticeOfAward = (id: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: UpdateNoticeOfAwardPayload) => noticesOfAwardApi.update(id, payload),
+    mutationFn: (payload: UpdateNoticeOfAwardInput) => noticesOfAwardApi.update(id, payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['notices-of-award', id] });
       queryClient.invalidateQueries({ queryKey: ['notices-of-award'] });

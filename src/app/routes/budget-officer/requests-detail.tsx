@@ -22,8 +22,11 @@ const BudgetOfficerRequestDetailPage = () => {
           <span aria-hidden="true">&gt;</span>
           <span className="font-medium text-gray-900">Request # {rfLabel}</span>
         </nav>
-        <Button asChild className="bg-green-700 text-white hover:bg-green-800">
-          <Link to="/budget-officer/requests">Back</Link>
+        <Button
+          className="bg-green-700 text-white hover:bg-green-800"
+          render={<Link to="/budget-officer/requests" />}
+        >
+          Back
         </Button>
       </div>
 

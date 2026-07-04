@@ -21,6 +21,7 @@ All database entity interfaces live in `src/types/entities/`, one file per domai
 | `procurement.ts` | `AbstractOfQuotation`, `BacResolution`, `NoticeOfAward` + `AbstractStatus` enum |
 | `notification.ts` | `Notification` |
 | `audit-log.ts` | `AuditLog`, `LoginLog` + `AuditEvent`, `LoginStatus` enums |
+| `supplier.ts` | `Supplier`, `SupplierDocument` + `CreateSupplierPayload`, `CreateSupplierDocumentPayload` |
 
 ## Key conventions
 

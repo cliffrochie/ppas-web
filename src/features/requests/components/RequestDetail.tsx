@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Check, File, FileText, Image } from 'lucide-react';
 import { cn } from '@/utils';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import type { PurchaseRequest, PurchaseRequestStatus, PrStatusHistory, User } from '@/types';
 import { RequestStatusBadge } from './RequestStatusBadge';
 
@@ -107,10 +108,12 @@ const LabelValue = ({ label, children }: { label: string; children: ReactNode })
 
 interface RequestDetailProps {
   request: PurchaseRequest;
+  /** From `useRequestStatusHistories(request.id)` — status history is a separate
+   * read-only resource, not embedded on `PurchaseRequestResource`. */
+  histories?: PrStatusHistory[];
 }
 
-export const RequestDetail = ({ request }: RequestDetailProps) => {
-  const histories = request.status_histories ?? [];
+export const RequestDetail = ({ request, histories = [] }: RequestDetailProps) => {
   const items = request.items ?? [];
   const attachments = request.attachments ?? [];
 
@@ -164,13 +167,10 @@ export const RequestDetail = ({ request }: RequestDetailProps) => {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.item_description}</p>
                         {item.specifications && (
-                          <div className="mt-0.5 space-y-0.5">
-                            {item.specifications.split('\n').map((spec, i) => (
-                              <p key={i} className="text-xs italic text-gray-500">
-                                {spec}
-                              </p>
-                            ))}
-                          </div>
+                          <RichTextContent
+                            html={item.specifications}
+                            className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                          />
                         )}
                       </div>
                       <p className="shrink-0 tabular-nums font-medium text-gray-900">
@@ -225,13 +225,10 @@ export const RequestDetail = ({ request }: RequestDetailProps) => {
                         <td className="py-3 pr-4">
                           <p className="font-medium text-gray-900">{item.item_description}</p>
                           {item.specifications && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {item.specifications.split('\n').map((spec, i) => (
-                                <p key={i} className="text-xs italic text-gray-500">
-                                  {spec}
-                                </p>
-                              ))}
-                            </div>
+                            <RichTextContent
+                              html={item.specifications}
+                              className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                            />
                           )}
                         </td>
                         <td className="py-3 pr-4 text-right tabular-nums text-gray-700">

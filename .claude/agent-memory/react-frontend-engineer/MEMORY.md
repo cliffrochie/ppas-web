@@ -3,3 +3,9 @@
 - [Auth Feature Conventions](auth-feature-conventions.md) — identifier field naming, API contract, social button stubs, form patterns
 - [Routing & Layout Patterns](project-routing-layout-patterns.md) — multi-role layout structure, RequesterLayout top-nav pattern, route group conventions
 - [Global Entity Types](global-entity-types.md) — src/types/entities/ layout, decimal-as-string pattern, const+type alias barrel rule, requests feature re-export aliases
+- [Procurement Chain UI Patterns](procurement-chain-ui-patterns.md) — multipart file-upload mutation convention, base-ui Dialog trigger render prop, shared SearchCombobox, pre-existing baseline errors to ignore
+- [Notifications Feature Conventions](notifications-feature-conventions.md) — NotificationBell, requestsPathPrefix prop, /notifications ignores per_page, layouts-importing-features precedent
+- [Monitoring Feature Conventions](monitoring-feature-conventions.md) — Audit/Login Log module, shared-list-across-3-routes pattern, base-ui Select onValueChange typing gotcha, expected +1 lint warning per new TanStack Table component
+- [Purchase Order Status Contract](purchase-order-status-contract.md) — real 5-value PO status enum, PATCH /purchase-orders/{id} (no /status route, no remarks field, no fund_source)
+- [Supplier Contract Audit](supplier-contract-audit.md) — verified real Supplier/SupplierDocument fields, is_active boolean, no sort_by support, docs-upload-after-create flow
+- [Purchase Request Contract Fix](purchase-request-contract-fix.md) — /purchase-requests path, requester_id not end_user_name, items/attachments/status-history are separate calls, delete-recreate item edit pattern

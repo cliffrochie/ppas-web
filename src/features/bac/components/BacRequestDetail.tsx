@@ -2,9 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { Check, File, FileText, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { cn } from '@/utils';
 import type { PurchaseRequest, PurchaseRequestStatus, PrStatusHistory, User } from '@/types';
 import { RequestStatusBadge } from '@/features/requests';
+import { useRequestStatusHistories } from '@/features/requests/api/requests';
 import { useUpdateRequestStatus } from '../api/requests';
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
@@ -207,10 +209,10 @@ const BacReviewPanel = ({ request }: BacReviewPanelProps) => {
 
 interface ApprovalChainProps {
   request: PurchaseRequest;
+  histories: PrStatusHistory[];
 }
 
-const ApprovalChain = ({ request }: ApprovalChainProps) => {
-  const histories = request.status_histories ?? [];
+const ApprovalChain = ({ request, histories }: ApprovalChainProps) => {
   const completedCount = STATUS_COMPLETED_COUNT[request.status];
 
   return (
@@ -289,6 +291,8 @@ export const BacRequestDetail = ({ request }: BacRequestDetailProps) => {
   const items = request.items ?? [];
   const attachments = request.attachments ?? [];
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.quantity), 0);
+  const { data: historiesResponse } = useRequestStatusHistories(request.id);
+  const histories = historiesResponse?.data ?? [];
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -337,13 +341,10 @@ export const BacRequestDetail = ({ request }: BacRequestDetailProps) => {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.item_description}</p>
                         {item.specifications && (
-                          <div className="mt-0.5 space-y-0.5">
-                            {item.specifications.split('\n').map((spec, i) => (
-                              <p key={i} className="text-xs italic text-gray-500">
-                                {spec}
-                              </p>
-                            ))}
-                          </div>
+                          <RichTextContent
+                            html={item.specifications}
+                            className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                          />
                         )}
                       </div>
                       <p className="shrink-0 tabular-nums font-medium text-gray-900">
@@ -398,13 +399,10 @@ export const BacRequestDetail = ({ request }: BacRequestDetailProps) => {
                         <td className="py-3 pr-4">
                           <p className="font-medium text-gray-900">{item.item_description}</p>
                           {item.specifications && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {item.specifications.split('\n').map((spec, i) => (
-                                <p key={i} className="text-xs italic text-gray-500">
-                                  {spec}
-                                </p>
-                              ))}
-                            </div>
+                            <RichTextContent
+                              html={item.specifications}
+                              className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                            />
                           )}
                         </td>
                         <td className="py-3 pr-4 text-right tabular-nums text-gray-700">
@@ -474,7 +472,7 @@ export const BacRequestDetail = ({ request }: BacRequestDetailProps) => {
       {/* ─── Right column ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
         <BacReviewPanel request={request} />
-        <ApprovalChain request={request} />
+        <ApprovalChain request={request} histories={histories} />
       </div>
     </div>
   );

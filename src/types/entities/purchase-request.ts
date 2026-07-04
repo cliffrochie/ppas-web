@@ -1,7 +1,6 @@
 import type { Category } from './category';
 import type { Office } from './office';
 import type { User } from './user';
-import type { PurchaseOrder } from './purchase-order';
 
 // ─── Status & attachment-type enums ────────────────────────────────────────
 
@@ -52,7 +51,6 @@ export interface PurchaseRequest {
   rf_number: string | null;
   /** Null until PPU prepares the formal PR document (forwarded_to_ppu → pr_prepared) */
   pr_number: string | null;
-  end_user_name: string | null;
   requester_id: number;
   requesting_office_id: number;
   category_id: number | null;
@@ -60,11 +58,11 @@ export interface PurchaseRequest {
   status: PurchaseRequestStatus;
   /** Encoded by Budget Officer on approval; also stored in pr_status_histories */
   alobs_number: string | null;
-  /** Fund source code (e.g. "GAA 2025") — set during budget approval */
-  fund_source: string | null;
   /** Decimal stored as string to preserve precision */
   total_amount: string;
   submitted_at: string | null;
+  /** Server-computed: true when total_amount >= 50,000 (mandatory PhilGEPS posting) */
+  requires_philgeps: boolean;
   created_at: string;
   updated_at: string;
   // Relations (present when eager-loaded by the API)
@@ -73,8 +71,6 @@ export interface PurchaseRequest {
   category?: Category;
   items?: PurchaseRequestItem[];
   attachments?: PrAttachment[];
-  status_histories?: PrStatusHistory[];
-  purchase_order?: PurchaseOrder;
 }
 
 export interface PurchaseRequestItem {
@@ -127,27 +123,36 @@ export interface PrStatusHistory {
 
 // ─── Payload types ──────────────────────────────────────────────────────────
 
+/** Sent to `POST /purchase-request-items`; items are created in a separate call per item,
+ * after the parent purchase request has been created (mirrors how attachments work). */
 export interface CreatePurchaseRequestItemPayload {
+  purchase_request_id: number;
   item_description: string;
   specifications?: string;
   unit_of_measure: string;
   quantity: number;
   unit_cost: number;
+  total_cost: number;
 }
 
+/** Sent to `POST /purchase-requests`. No `items` field — line items are created
+ * individually afterwards via `CreatePurchaseRequestItemPayload`. */
 export interface CreatePurchaseRequestPayload {
+  requester_id: number;
   requesting_office_id: number;
   category_id?: number;
   purpose: string;
-  items: CreatePurchaseRequestItemPayload[];
+  status?: PurchaseRequestStatus;
 }
 
 export interface UpdatePurchaseRequestPayload {
-  end_user_name?: string;
+  requester_id?: number;
   requesting_office_id?: number;
   category_id?: number | null;
   purpose?: string;
-  items?: CreatePurchaseRequestItemPayload[];
+  status?: PurchaseRequestStatus;
+  remarks?: string;
+  alobs_number?: string;
 }
 
 /** Used by role actors (BAC Sec, Budget Officer, PPU) to advance or reverse a PR's status. */

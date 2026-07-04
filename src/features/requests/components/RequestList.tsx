@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRequests } from '../api/requests';
@@ -73,7 +74,10 @@ export const RequestList = () => {
           />
         </div>
 
-        <Button className="w-full gap-2 bg-green-700 text-white hover:bg-green-800 sm:w-auto">
+        <Button
+          className="w-full gap-2 bg-green-700 text-white hover:bg-green-800 sm:w-auto"
+          render={<Link to="/requests/new" />}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Create New Request
         </Button>

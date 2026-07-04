@@ -1,11 +1,5 @@
-import { ContentLayout } from '@/components/layouts';
+import { BacDashboard } from '@/features/bac/components/BacDashboard';
 
-const DashboardPage = () => {
-  return (
-    <ContentLayout title="Dashboard">
-      <p className="text-muted-foreground text-sm">Welcome to the PPAS dashboard.</p>
-    </ContentLayout>
-  );
-};
+const DashboardPage = () => <BacDashboard />;
 
 export default DashboardPage;

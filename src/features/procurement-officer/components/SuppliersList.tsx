@@ -57,10 +57,10 @@ export const SuppliersList = () => {
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
           <h2 className="text-base font-semibold text-gray-800">Suppliers</h2>
           <Button
-            asChild
             className="bg-green-700 text-white hover:bg-green-800"
+            render={<Link to="/procurement-officer/suppliers/create" />}
           >
-            <Link to="/procurement-officer/suppliers/create">Create New Supplier</Link>
+            Create New Supplier
           </Button>
         </div>
 

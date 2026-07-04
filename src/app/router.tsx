@@ -22,6 +22,7 @@ const BudgetOfficerRequestsPage = lazy(() => import('./routes/budget-officer/req
 const BudgetOfficerRequestDetailPage = lazy(
   () => import('./routes/budget-officer/requests-detail'),
 );
+const BudgetOfficerAuditLogsPage = lazy(() => import('./routes/budget-officer/audit-logs'));
 const ProcurementOfficerRootLayout = lazy(() => import('./routes/procurement-officer/root'));
 const ProcurementDashboardPage = lazy(() => import('./routes/procurement-officer/dashboard'));
 const ProcurementRequestsPage = lazy(() => import('./routes/procurement-officer/requests'));
@@ -44,6 +45,26 @@ const ProcurementSupplierDetailPage = lazy(
 const ProcurementSupplierEditPage = lazy(
   () => import('./routes/procurement-officer/suppliers-edit'),
 );
+const ProcurementRfqsPage = lazy(() => import('./routes/procurement-officer/rfqs'));
+const ProcurementRfqDetailPage = lazy(() => import('./routes/procurement-officer/rfqs-detail'));
+const ProcurementAbstractsPage = lazy(() => import('./routes/procurement-officer/abstracts'));
+const ProcurementAbstractDetailPage = lazy(
+  () => import('./routes/procurement-officer/abstracts-detail'),
+);
+const ProcurementBacResolutionsPage = lazy(
+  () => import('./routes/procurement-officer/bac-resolutions'),
+);
+const ProcurementBacResolutionDetailPage = lazy(
+  () => import('./routes/procurement-officer/bac-resolutions-detail'),
+);
+const ProcurementNoticesOfAwardPage = lazy(
+  () => import('./routes/procurement-officer/notices-of-award'),
+);
+const ProcurementNoticeOfAwardDetailPage = lazy(
+  () => import('./routes/procurement-officer/notices-of-award-detail'),
+);
+const ProcurementAuditLogsPage = lazy(() => import('./routes/procurement-officer/audit-logs'));
+const ProcurementLoginLogsPage = lazy(() => import('./routes/procurement-officer/login-logs'));
 const NotFoundPage = lazy(() => import('./routes/not-found'));
 
 const PageLoader = () => (
@@ -104,6 +125,10 @@ export const router = createBrowserRouter([
             path: '/budget-officer/requests/:id',
             element: withSuspense(<BudgetOfficerRequestDetailPage />),
           },
+          {
+            path: '/budget-officer/audit-logs',
+            element: withSuspense(<BudgetOfficerAuditLogsPage />),
+          },
         ],
       },
       {
@@ -144,6 +169,46 @@ export const router = createBrowserRouter([
           {
             path: '/procurement-officer/suppliers/:id',
             element: withSuspense(<ProcurementSupplierDetailPage />),
+          },
+          {
+            path: '/procurement-officer/rfqs',
+            element: withSuspense(<ProcurementRfqsPage />),
+          },
+          {
+            path: '/procurement-officer/rfqs/:id',
+            element: withSuspense(<ProcurementRfqDetailPage />),
+          },
+          {
+            path: '/procurement-officer/abstracts',
+            element: withSuspense(<ProcurementAbstractsPage />),
+          },
+          {
+            path: '/procurement-officer/abstracts/:id',
+            element: withSuspense(<ProcurementAbstractDetailPage />),
+          },
+          {
+            path: '/procurement-officer/bac-resolutions',
+            element: withSuspense(<ProcurementBacResolutionsPage />),
+          },
+          {
+            path: '/procurement-officer/bac-resolutions/:id',
+            element: withSuspense(<ProcurementBacResolutionDetailPage />),
+          },
+          {
+            path: '/procurement-officer/notices-of-award',
+            element: withSuspense(<ProcurementNoticesOfAwardPage />),
+          },
+          {
+            path: '/procurement-officer/notices-of-award/:id',
+            element: withSuspense(<ProcurementNoticeOfAwardDetailPage />),
+          },
+          {
+            path: '/procurement-officer/audit-logs',
+            element: withSuspense(<ProcurementAuditLogsPage />),
+          },
+          {
+            path: '/procurement-officer/login-logs',
+            element: withSuspense(<ProcurementLoginLogsPage />),
           },
         ],
       },

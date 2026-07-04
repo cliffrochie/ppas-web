@@ -9,7 +9,12 @@ const BAC_NAV = [
 ];
 
 const BacRootLayout = () => (
-  <AppSidebarLayout navItems={BAC_NAV} homeHref="/bac/dashboard" roleName="BAC Secretariat">
+  <AppSidebarLayout
+    navItems={BAC_NAV}
+    homeHref="/bac/dashboard"
+    roleName="BAC Secretariat"
+    requestsPathPrefix="/bac/requests"
+  >
     <Outlet />
   </AppSidebarLayout>
 );

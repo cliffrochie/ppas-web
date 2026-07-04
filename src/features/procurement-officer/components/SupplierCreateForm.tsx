@@ -1,30 +1,35 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/utils';
 import type { Supplier } from '@/types';
-import { useCreateSupplier, useUpdateSupplier } from '../api/suppliers';
+import { useCreateSupplier, useUpdateSupplier, useUploadSupplierDocument } from '../api/suppliers';
+import { useCategories } from '@/features/requests';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
   name: z.string().min(1, 'Required'),
-  tin: z.string().optional(),
-  category: z.string().min(1, 'Required'),
-  website_url: z.string().url('Invalid URL').optional().or(z.literal('')),
-  status: z.enum(['active', 'inactive']).default('active'),
+  tin_number: z.string().optional(),
+  category_id: z
+    .number({ message: 'Please select a category' })
+    .int()
+    .positive('Please select a category'),
+  website: z.string().url('Invalid URL').optional().or(z.literal('')),
+  is_active: z.boolean(),
   contact_person: z.string().optional(),
   email: z.string().email('Invalid email'),
   phone: z.string().optional(),
-  street_address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
+  address_street: z.string().optional(),
+  address_city: z.string().optional(),
+  address_province: z.string().optional(),
+  address_zip: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -133,16 +138,29 @@ const TagInput = ({
 };
 
 // ─── Logo upload ──────────────────────────────────────────────────────────────
+// Replacing an existing logo on edit is out of scope for now (the update
+// mutation only sends JSON) — in edit mode this renders as a read-only
+// preview of the current logo rather than silently discarding a new pick.
 
-const LogoUpload = () => {
-  const [preview, setPreview] = useState<string | null>(null);
+const LogoUpload = ({
+  value,
+  onChange,
+  existingUrl,
+  readOnly,
+}: {
+  value: File | null;
+  onChange: (file: File) => void;
+  existingUrl?: string | null;
+  readOnly?: boolean;
+}) => {
+  const [preview, setPreview] = useState<string | null>(existingUrl ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+    onChange(file);
+    setPreview(URL.createObjectURL(file));
   };
 
   return (
@@ -150,42 +168,57 @@ const LogoUpload = () => {
       <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Logo</p>
       <button
         type="button"
-        onClick={() => inputRef.current?.click()}
-        className="flex size-16 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-green-400"
-        aria-label="Upload supplier logo"
+        onClick={() => !readOnly && inputRef.current?.click()}
+        disabled={readOnly}
+        className={cn(
+          'flex size-16 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-gray-50',
+          !readOnly && 'hover:border-green-400',
+        )}
+        aria-label={readOnly ? 'Supplier logo' : 'Upload supplier logo'}
       >
-        {preview ? (
-          <img src={preview} alt="Logo preview" className="h-full w-full object-cover" />
+        {preview || value ? (
+          <img
+            src={value ? URL.createObjectURL(value) : (preview ?? undefined)}
+            alt="Logo preview"
+            className="h-full w-full object-cover"
+          />
         ) : (
           <Upload className="size-5 text-gray-400" aria-hidden="true" />
         )}
       </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={handleChange}
-        aria-label="Select logo file"
-      />
+      {!readOnly && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={handleChange}
+          aria-label="Select logo file"
+        />
+      )}
     </div>
   );
 };
 
 // ─── Compliance docs upload ───────────────────────────────────────────────────
 
-const ComplianceDocs = () => {
-  const [docs, setDocs] = useState<File[]>([]);
+const ComplianceDocs = ({
+  docs,
+  onChange,
+}: {
+  docs: File[];
+  onChange: (docs: File[]) => void;
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    setDocs((prev) => [...prev, ...files]);
+    onChange([...docs, ...files]);
     e.target.value = '';
   };
 
   const removeDoc = (index: number) => {
-    setDocs((prev) => prev.filter((_, i) => i !== index));
+    onChange(docs.filter((_, i) => i !== index));
   };
 
   return (
@@ -247,15 +280,20 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
   const navigate = useNavigate();
   const { mutate: createMutate, isPending: createPending } = useCreateSupplier();
   const { mutate: updateMutate, isPending: updatePending } = useUpdateSupplier(supplier?.id ?? 0);
+  const { mutateAsync: uploadDocumentAsync } = useUploadSupplierDocument();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const isPending = supplier ? updatePending : createPending;
 
   const [tags, setTags] = useState<string[]>(supplier?.tags ?? []);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [complianceDocs, setComplianceDocs] = useState<File[]>([]);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -264,26 +302,26 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
     defaultValues: supplier
       ? {
           name: supplier.name,
-          tin: supplier.tin ?? '',
-          category: supplier.category,
-          website_url: supplier.website_url ?? '',
-          status: supplier.status,
+          tin_number: supplier.tin_number ?? '',
+          category_id: supplier.category_id ?? undefined,
+          website: supplier.website ?? '',
+          is_active: supplier.is_active,
           contact_person: supplier.contact_person ?? '',
           email: supplier.email,
           phone: supplier.phone ?? '',
-          street_address: supplier.street_address ?? '',
-          city: supplier.city ?? '',
-          state: supplier.state ?? '',
-          zip: supplier.zip ?? '',
+          address_street: supplier.address_street ?? '',
+          address_city: supplier.address_city ?? '',
+          address_province: supplier.address_province ?? '',
+          address_zip: supplier.address_zip ?? '',
         }
-      : { status: 'active' },
+      : { is_active: true },
   });
 
-  const isActive = watch('status') === 'active';
+  const isActive = watch('is_active');
 
   const onSubmit = (values: FormValues) => {
     if (supplier) {
-      // Edit mode — JSON PATCH
+      // Edit mode — JSON PATCH (logo/document replacement not yet supported here)
       updateMutate(
         { ...values, tags },
         {
@@ -298,21 +336,31 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
     // Create mode — FormData (supports logo upload)
     const formData = new FormData();
     formData.append('name', values.name);
-    if (values.tin) formData.append('tin', values.tin);
-    formData.append('category', values.category);
-    if (values.website_url) formData.append('website_url', values.website_url);
-    formData.append('status', values.status);
+    if (values.tin_number) formData.append('tin_number', values.tin_number);
+    formData.append('category_id', String(values.category_id));
+    if (values.website) formData.append('website', values.website);
     tags.forEach((tag) => formData.append('tags[]', tag));
+    formData.append('is_active', values.is_active ? '1' : '0');
     if (values.contact_person) formData.append('contact_person', values.contact_person);
     formData.append('email', values.email);
     if (values.phone) formData.append('phone', values.phone);
-    if (values.street_address) formData.append('street_address', values.street_address);
-    if (values.city) formData.append('city', values.city);
-    if (values.state) formData.append('state', values.state);
-    if (values.zip) formData.append('zip', values.zip);
+    if (values.address_street) formData.append('address_street', values.address_street);
+    if (values.address_city) formData.append('address_city', values.address_city);
+    if (values.address_province) formData.append('address_province', values.address_province);
+    if (values.address_zip) formData.append('address_zip', values.address_zip);
+    if (logoFile) formData.append('logo', logoFile);
 
     createMutate(formData, {
-      onSuccess: () => {
+      onSuccess: (response) => {
+        const supplierId = response.data.id;
+        if (complianceDocs.length > 0) {
+          // Documents can only be uploaded once the supplier (and its id) exists.
+          // Best-effort: a failed doc upload shouldn't block the create flow —
+          // the global Axios interceptor already surfaces a toast on failure.
+          void Promise.allSettled(
+            complianceDocs.map((file) => uploadDocumentAsync({ supplier_id: supplierId, file })),
+          );
+        }
         void navigate('/procurement-officer/suppliers');
       },
     });
@@ -335,7 +383,12 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
           {/* ─── Left column ─────────────────────────────────────────── */}
           <div className="flex flex-col gap-6">
             <Card title="Supplier Information">
-              <LogoUpload />
+              <LogoUpload
+                value={logoFile}
+                onChange={setLogoFile}
+                existingUrl={supplier?.logo_url}
+                readOnly={!!supplier}
+              />
 
               <Field
                 label="Company Legal Name"
@@ -348,46 +401,73 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
 
               <Field
                 label="Tax / TIN / VAT No."
-                required
-                error={errors.tin?.message}
-                htmlFor="tin"
+                error={errors.tin_number?.message}
+                htmlFor="tin_number"
               >
-                <Input id="tin" {...register('tin')} />
+                <Input id="tin_number" {...register('tin_number')} />
               </Field>
 
               <Field
                 label="Category / Industry"
                 required
-                error={errors.category?.message}
-                htmlFor="category"
+                error={errors.category_id?.message}
+                htmlFor="category_id_trigger"
               >
-                <select
-                  id="category"
-                  {...register('category')}
-                  aria-required="true"
-                  className={cn(
-                    'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors',
-                    'focus:outline-none focus:ring-1 focus:ring-ring',
-                    errors.category && 'border-destructive',
+                <Controller
+                  control={control}
+                  name="category_id"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value !== undefined ? String(field.value) : ''}
+                      onValueChange={(val: string | null) =>
+                        field.onChange(val !== null ? Number(val) : undefined)
+                      }
+                    >
+                      <SelectTrigger
+                        id="category_id_trigger"
+                        aria-required="true"
+                        aria-invalid={!!errors.category_id}
+                        className={cn('w-full', errors.category_id && 'border-destructive')}
+                      >
+                        <SelectValue>
+                          {(value: string | null) => {
+                            if (!value) return 'Select category';
+                            return categories.find((c) => String(c.id) === value)?.name ?? value;
+                          }}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesLoading ? (
+                          <SelectItem value="__loading__" disabled>
+                            Loading categories...
+                          </SelectItem>
+                        ) : categories.length === 0 ? (
+                          <SelectItem value="__empty__" disabled>
+                            No categories available
+                          </SelectItem>
+                        ) : (
+                          categories.map((cat) => (
+                            <SelectItem key={cat.id} value={String(cat.id)}>
+                              {cat.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                   )}
-                >
-                  <option value="">Select category</option>
-                  <option value="ICT Related">ICT Related</option>
-                  <option value="Office Related">Office Related</option>
-                  <option value="General Services">General Services</option>
-                </select>
+                />
               </Field>
 
               <Field
                 label="Website URL"
-                error={errors.website_url?.message}
-                htmlFor="website_url"
+                error={errors.website?.message}
+                htmlFor="website"
               >
                 <Input
-                  id="website_url"
+                  id="website"
                   type="url"
                   placeholder="https://"
-                  {...register('website_url')}
+                  {...register('website')}
                 />
               </Field>
 
@@ -433,21 +513,25 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
 
               <Field
                 label="Street Address"
-                error={errors.street_address?.message}
-                htmlFor="street_address"
+                error={errors.address_street?.message}
+                htmlFor="address_street"
               >
-                <Input id="street_address" {...register('street_address')} />
+                <Input id="address_street" {...register('address_street')} />
               </Field>
 
               <div className="grid grid-cols-3 gap-4">
-                <Field label="City" error={errors.city?.message} htmlFor="city">
-                  <Input id="city" {...register('city')} />
+                <Field label="City" error={errors.address_city?.message} htmlFor="address_city">
+                  <Input id="address_city" {...register('address_city')} />
                 </Field>
-                <Field label="State / Province" error={errors.state?.message} htmlFor="state">
-                  <Input id="state" {...register('state')} />
+                <Field
+                  label="State / Province"
+                  error={errors.address_province?.message}
+                  htmlFor="address_province"
+                >
+                  <Input id="address_province" {...register('address_province')} />
                 </Field>
-                <Field label="Zip / Post" error={errors.zip?.message} htmlFor="zip">
-                  <Input id="zip" {...register('zip')} />
+                <Field label="Zip / Post" error={errors.address_zip?.message} htmlFor="address_zip">
+                  <Input id="address_zip" {...register('address_zip')} />
                 </Field>
               </div>
             </Card>
@@ -458,13 +542,13 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
             <Card title="Supplier Status">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Active Supplier</span>
-                <label className="relative inline-flex cursor-pointer items-center" htmlFor="status-toggle">
+                <label className="relative inline-flex cursor-pointer items-center" htmlFor="is_active_toggle">
                   <input
-                    id="status-toggle"
+                    id="is_active_toggle"
                     type="checkbox"
                     className="peer sr-only"
                     checked={isActive}
-                    onChange={(e) => setValue('status', e.target.checked ? 'active' : 'inactive')}
+                    onChange={(e) => setValue('is_active', e.target.checked)}
                     aria-label="Active supplier toggle"
                   />
                   <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:size-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full" />
@@ -479,13 +563,17 @@ export const SupplierCreateForm = ({ supplier }: SupplierFormProps = {}) => {
                 {isPending ? 'Saving…' : supplier ? 'Update Supplier' : 'Save Supplier'}
               </Button>
 
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/procurement-officer/suppliers">Cancel</Link>
+              <Button
+                variant="outline"
+                className="w-full"
+                render={<Link to="/procurement-officer/suppliers" />}
+              >
+                Cancel
               </Button>
             </Card>
 
             <Card title="Compliance Documents">
-              <ComplianceDocs />
+              <ComplianceDocs docs={complianceDocs} onChange={setComplianceDocs} />
             </Card>
           </div>
         </div>

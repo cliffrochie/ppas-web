@@ -21,8 +21,11 @@ const ProcurementPurchaseOrderDetailPage = () => {
           <span aria-hidden="true">&gt;</span>
           <span className="font-medium text-gray-900">{poLabel}</span>
         </nav>
-        <Button asChild className="bg-green-700 text-white hover:bg-green-800">
-          <Link to="/procurement-officer/purchase-orders">Back</Link>
+        <Button
+          className="bg-green-700 text-white hover:bg-green-800"
+          render={<Link to="/procurement-officer/purchase-orders" />}
+        >
+          Back
         </Button>
       </div>
 

@@ -36,11 +36,9 @@ const PO_STEPS = [
 const PO_STEP_COUNT: Record<PurchaseOrderStatus, number> = {
   draft: 0,
   for_signature: 1,
-  signed: 2,
-  acknowledged: 3,
-  for_completion: 4,
-  completed: 5,
-  failed: 0,
+  supplier_acceptance: 2,
+  delivery_inspection: 3,
+  completed: 4,
 };
 
 const HorizontalStepper = ({ status }: { status: PurchaseOrderStatus }) => {
@@ -50,7 +48,7 @@ const HorizontalStepper = ({ status }: { status: PurchaseOrderStatus }) => {
     <ol className="mt-4 flex items-center gap-0">
       {PO_STEPS.map((step, index) => {
         const isDone = index < completedCount;
-        const isActive = index === completedCount && completedCount < 5;
+        const isActive = index === completedCount && completedCount < 4;
         const isLast = index === PO_STEPS.length - 1;
 
         return (
@@ -101,10 +99,9 @@ const HorizontalStepper = ({ status }: { status: PurchaseOrderStatus }) => {
 
 const PROCEED_MAP: Partial<Record<PurchaseOrderStatus, PurchaseOrderStatus>> = {
   draft: 'for_signature',
-  for_signature: 'signed',
-  signed: 'acknowledged',
-  acknowledged: 'for_completion',
-  for_completion: 'completed',
+  for_signature: 'supplier_acceptance',
+  supplier_acceptance: 'delivery_inspection',
+  delivery_inspection: 'completed',
 };
 
 interface HeaderButtonsProps {
@@ -115,9 +112,9 @@ const HeaderButtons = ({ po }: HeaderButtonsProps) => {
   const { mutate, isPending } = useUpdatePoStatus(po.id);
   const nextStatus = PROCEED_MAP[po.status];
 
-  if (po.status === 'completed' || po.status === 'failed') return null;
+  if (po.status === 'completed') return null;
 
-  if (po.status === 'for_completion') {
+  if (po.status === 'delivery_inspection') {
     return (
       <Button
         className="bg-green-500 text-white hover:bg-green-600"
@@ -138,14 +135,6 @@ const HeaderButtons = ({ po }: HeaderButtonsProps) => {
       >
         <Printer className="mr-1.5 size-4" aria-hidden="true" />
         Print
-      </Button>
-      <Button
-        variant="outline"
-        className="border-red-400 text-red-400 hover:bg-red-500/10"
-        disabled={isPending}
-        onClick={() => mutate({ status: 'failed' })}
-      >
-        Fail
       </Button>
       {nextStatus && (
         <Button
@@ -220,7 +209,7 @@ export const PurchaseOrderDetail = ({ po }: PurchaseOrderDetailProps) => {
       </div>
 
       {/* Summary info cards */}
-      <div className="grid grid-cols-2 gap-0 border-b border-gray-100 bg-white sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-0 border-b border-gray-100 bg-white sm:grid-cols-3">
         <InfoCard
           label="Supplier"
           value={po.supplier_name ?? '—'}
@@ -230,10 +219,6 @@ export const PurchaseOrderDetail = ({ po }: PurchaseOrderDetailProps) => {
           label="Total Amount"
           value={formatCurrency(po.total_amount)}
           valueClass="text-green-700"
-        />
-        <InfoCard
-          label="Fund Source"
-          value={po.purchase_request?.fund_source ?? '—'}
         />
         <InfoCard
           label="PR Reference"

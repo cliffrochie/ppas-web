@@ -4,6 +4,12 @@
 
 ---
 
+## Subagent Delegation Policy
+
+For every task given in this project, first check whether a qualified subagent (from the available agent types) is capable of handling it. If a matching subagent exists, delegate the task to it rather than handling it directly.
+
+---
+
 ## Tech Stack
 
 | Layer | Library / Tool |
@@ -430,3 +436,48 @@ src/features/<feature-name>/
 Then add the route in `src/app/router.tsx` (lazy import + route entry inside `<ProtectedRoute>`), and the corresponding thin page file in `src/app/routes/<role>/<page>.tsx`.
 
 Entity types that are shared across features belong in `src/types/entities/` with a re-export in `src/types/entities/index.ts`.
+
+---
+
+## Behavioral Guidelines (Karpathy-Inspired)
+
+Source: [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills). Bias toward caution over speed on non-trivial work; use judgment on trivial ones (typo fixes, obvious one-liners).
+
+### 1. Think Before Coding
+
+Don't assume. Don't hide confusion. Surface tradeoffs.
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 2. Simplicity First
+
+Minimum code that solves the problem. Nothing speculative.
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If 200 lines could be 50, rewrite it.
+
+Ask: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 3. Surgical Changes
+
+Touch only what you must. Clean up only your own mess.
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it — don't delete it.
+- Remove imports/variables/functions that YOUR changes made unused; don't remove pre-existing dead code unless asked.
+
+Every changed line should trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+
+Define success criteria. Loop until verified.
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan with a verification check per step.

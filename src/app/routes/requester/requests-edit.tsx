@@ -18,8 +18,11 @@ const RequestEditPage = () => {
           <span aria-hidden="true">&gt;</span>
           <span className="font-medium text-gray-900">Edit Request</span>
         </nav>
-        <Button asChild className="bg-green-700 text-white hover:bg-green-800">
-          <Link to={`/requests/${numericId}`}>Back</Link>
+        <Button
+          className="bg-green-700 text-white hover:bg-green-800"
+          render={<Link to={`/requests/${numericId}`} />}
+        >
+          Back
         </Button>
       </div>
 

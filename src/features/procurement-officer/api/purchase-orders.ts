@@ -13,7 +13,6 @@ interface PurchaseOrderFilters {
 
 interface PoStatusPayload {
   status: PurchaseOrderStatus;
-  remarks?: string;
 }
 
 const purchaseOrdersApi = {
@@ -28,7 +27,7 @@ const purchaseOrdersApi = {
   },
 
   updateStatus: async (id: number, payload: PoStatusPayload): Promise<ApiResponse<PurchaseOrder>> => {
-    const { data } = await api.patch(`/purchase-orders/${id}/status`, payload);
+    const { data } = await api.patch(`/purchase-orders/${id}`, payload);
     return data;
   },
 };

@@ -68,4 +68,9 @@ export type {
 } from './audit-log';
 
 // ─── Suppliers ───────────────────────────────────────────────────────────────
-export type { Supplier, SupplierPurchaseOrder, CreateSupplierPayload } from './supplier';
+export type {
+  Supplier,
+  SupplierDocument,
+  CreateSupplierPayload,
+  CreateSupplierDocumentPayload,
+} from './supplier';

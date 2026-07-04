@@ -1,68 +1,69 @@
 import { useState } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { CheckCircle, Clock, FileText, Pencil, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Clock, FileText, ShoppingBag } from 'lucide-react';
 import { cn } from '@/utils';
+import { useDashboard } from '@/features/dashboard';
+import type { BudgetUtilizationMonth } from '@/features/dashboard';
+import { RequestStatusBadge } from '@/features/requests';
+import type { PurchaseRequestStatus } from '@/types';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Filters ──────────────────────────────────────────────────────────────────
 
-const BUDGET_MONTHLY = [
-  165000, 255000, 390000, 490000, 365000, 605000,
-  698000, 530000, 465000, 385000, 273000, 507500,
-];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 4 }, (_, i) => String(CURRENT_YEAR - i));
 
-const SECTION_LABELS = [
-  'Engineering',
-  'Operations',
-  'Administrative',
-  'Finance',
-  "Regional Manager's Office",
-];
-const SECTION_COLORS = ['#ef4444', '#a855f7', '#eab308', '#22c55e', '#0ea5e9'];
-
-const CATEGORY_LABELS = [
-  'Office Equipment & Supplies',
-  'General Services & Equipment',
-  'ICT Equipment & Supplies',
-  'Vehicle Supplies & Materials',
-  'Others',
-];
-const CATEGORY_COLORS = ['#06b6d4', '#7c3aed', '#3b82f6', '#84cc16', '#f43f5e'];
-
-const RECENT_REQUESTS = [
-  { pr: 'PR-2025-145', requestor: 'Adam Williams', amount: 50000, status: 'Pending Review' },
-  { pr: 'PR-2025-144', requestor: 'Samantha Jones', amount: 23000, status: 'Approved' },
-  { pr: 'PR-2025-143', requestor: 'Joseph Smith', amount: 190000, status: 'Disapproved' },
-  { pr: 'PR-2025-142', requestor: 'John Simmons', amount: 49000, status: 'PO Generated' },
-];
-
-const HIGH_VALUE_REQUESTS = [
-  { item: 'High-end Laptop', office: 'Engineering', amount: 190000 },
-  { item: '2 units of Industrial Outdoor Fan', office: 'Administrative', amount: 140000 },
-  { item: '6.0 HP Floor-type Aircon', office: 'Administrative', amount: 139500 },
-  { item: 'Commercial Printer for Publishing', office: "Regional Manager's Office", amount: 550000 },
-];
-
-const YEARS = ['2023', '2024', '2025'];
 const PERIODS = [
   { value: 'whole_year', label: 'Whole Year' },
   { value: 'q1', label: 'Q1 (Jan – Mar)' },
   { value: 'q2', label: 'Q2 (Apr – Jun)' },
   { value: 'q3', label: 'Q3 (Jul – Sep)' },
   { value: 'q4', label: 'Q4 (Oct – Dec)' },
+] as const;
+
+type Period = (typeof PERIODS)[number]['value'];
+
+// The backend has no quarter/period filtering — it always returns all 12 months.
+// Quarter selection is handled client-side by slicing `months` for the budget chart.
+const QUARTER_RANGES: Record<Period, [number, number] | null> = {
+  whole_year: null,
+  q1: [1, 3],
+  q2: [4, 6],
+  q3: [7, 9],
+  q4: [10, 12],
+};
+
+const filterMonthsByPeriod = (months: BudgetUtilizationMonth[], period: Period) => {
+  const range = QUARTER_RANGES[period];
+  if (!range) return months;
+  const [start, end] = range;
+  return months.filter((m) => m.month >= start && m.month <= end);
+};
+
+// ─── Colors ───────────────────────────────────────────────────────────────────
+
+const SECTION_COLOR_PALETTE = [
+  '#ef4444', '#a855f7', '#eab308', '#22c55e', '#0ea5e9',
+  '#f97316', '#14b8a6', '#ec4899', '#6366f1', '#84cc16',
 ];
+const BUDGET_SECTION_COLOR_PALETTE = [
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9',
+  '#a855f7', '#14b8a6', '#ec4899', '#6366f1', '#84cc16',
+];
+const CATEGORY_COLOR_PALETTE = [
+  '#06b6d4', '#7c3aed', '#3b82f6', '#84cc16', '#f43f5e',
+  '#f59e0b', '#10b981', '#6366f1', '#ec4899', '#0ea5e9',
+];
+
+const cycleColors = (palette: string[], count: number) =>
+  Array.from({ length: count }, (_, i) => palette[i % palette.length]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) =>
   n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const STATUS_STYLES: Record<string, string> = {
-  'Pending Review': 'bg-amber-100 text-amber-700',
-  'Approved': 'bg-green-100 text-green-700',
-  'Disapproved': 'bg-rose-100  text-rose-700',
-  'PO Generated': 'bg-blue-100  text-blue-700',
-};
+const parseAmount = (amount: string) => parseFloat(amount) || 0;
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -88,20 +89,18 @@ const StatCard = ({ label, value, icon: Icon, iconBg, iconColor }: StatCardProps
 
 // ─── Chart options ────────────────────────────────────────────────────────────
 
-const budgetBarOptions: ApexOptions = {
+const makeBudgetBarOptions = (categories: string[]): ApexOptions => ({
   chart: { type: 'bar', toolbar: { show: false }, fontFamily: 'inherit' },
   colors: ['#818cf8'],
   plotOptions: { bar: { columnWidth: '55%', borderRadius: 3 } },
   dataLabels: { enabled: false },
   xaxis: {
-    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    categories,
     axisBorder: { show: false },
     axisTicks: { show: false },
   },
   yaxis: {
-    tickAmount: 2,
     min: 0,
-    max: 700000,
     labels: {
       formatter: (val) =>
         new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val),
@@ -125,11 +124,12 @@ const budgetBarOptions: ApexOptions = {
       },
     },
   ],
-};
+});
 
 const makeDonutOptions = (
   labels: string[],
   colors: string[],
+  formatter?: (val: number) => string,
 ): ApexOptions => ({
   chart: { type: 'donut', fontFamily: 'inherit' },
   colors,
@@ -143,7 +143,7 @@ const makeDonutOptions = (
   dataLabels: { enabled: false },
   plotOptions: { pie: { donut: { size: '62%' } } },
   stroke: { width: 0 },
-  tooltip: { y: { formatter: (val) => `${val}` } },
+  tooltip: { y: { formatter: formatter ?? ((val) => `${val}`) } },
   responsive: [
     {
       breakpoint: 480,
@@ -151,16 +151,6 @@ const makeDonutOptions = (
     },
   ],
 });
-
-const sectionDonutOptions = makeDonutOptions(SECTION_LABELS, SECTION_COLORS);
-const categoryDonutOptions = makeDonutOptions(CATEGORY_LABELS, CATEGORY_COLORS);
-
-// ─── Section donut with amount labels ─────────────────────────────────────────
-
-const budgetSectionOptions: ApexOptions = {
-  ...makeDonutOptions(SECTION_LABELS, ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9']),
-  tooltip: { y: { formatter: (val) => `₱${fmt(val)}` } },
-};
 
 // ─── Section card wrapper ─────────────────────────────────────────────────────
 
@@ -184,101 +174,175 @@ const Card = ({
   </div>
 );
 
+const EmptyState = ({ message }: { message: string }) => (
+  <p className="py-8 text-center text-sm text-gray-400">{message}</p>
+);
+
 // ─── Recent Requests table ────────────────────────────────────────────────────
 
-const RecentRequestsTable = () => (
-  <div className="overflow-x-auto">
-    <table className="w-full min-w-[480px] text-sm">
-      <thead>
-        <tr className="border-b border-gray-100">
-          {['PR No.', 'Requestor', 'Amount', 'Status', 'Action'].map((h) => (
-            <th
-              key={h}
-              className="pb-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400"
-            >
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {RECENT_REQUESTS.map((row) => (
-          <tr key={row.pr} className="hover:bg-gray-50">
-            <td className="py-3 text-sm font-medium text-gray-800">{row.pr}</td>
-            <td className="py-3 text-sm text-gray-600">{row.requestor}</td>
-            <td className="py-3 text-sm tabular-nums text-gray-600">{fmt(row.amount)}</td>
-            <td className="py-3">
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  STATUS_STYLES[row.status],
-                )}
+interface RecentRequestRow {
+  key: string;
+  identifier: string;
+  requester: string;
+  amount: string;
+  status: PurchaseRequestStatus;
+}
+
+const RecentRequestsTable = ({ rows }: { rows: RecentRequestRow[] }) => {
+  if (rows.length === 0) return <EmptyState message="No recent requests." />;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[480px] text-sm">
+        <thead>
+          <tr className="border-b border-gray-100">
+            {['RF/PR No.', 'Requester', 'Amount', 'Status'].map((h) => (
+              <th
+                key={h}
+                className="pb-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400"
               >
-                {row.status}
-              </span>
-            </td>
-            <td className="py-3">
-              <button
-                type="button"
-                aria-label={`Edit ${row.pr}`}
-                className="text-gray-400 hover:text-gray-700"
-              >
-                <Pencil className="size-4" aria-hidden="true" />
-              </button>
-            </td>
+                {h}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-);
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {rows.map((row) => (
+            <tr key={row.key} className="hover:bg-gray-50">
+              <td className="py-3 text-sm font-medium text-gray-800">{row.identifier}</td>
+              <td className="py-3 text-sm text-gray-600">{row.requester}</td>
+              <td className="py-3 text-sm tabular-nums text-gray-600">{fmt(parseAmount(row.amount))}</td>
+              <td className="py-3">
+                <RequestStatusBadge status={row.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 // ─── High-Value Requests table ────────────────────────────────────────────────
 
-const HighValueTable = () => (
-  <div className="overflow-x-auto">
-    <table className="w-full min-w-[400px] text-sm">
-      <thead>
-        <tr className="border-b border-gray-100">
-          {['Item', 'Office (Section)', 'Amount', 'Action'].map((h) => (
-            <th
-              key={h}
-              className="pb-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400"
-            >
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-50">
-        {HIGH_VALUE_REQUESTS.map((row, i) => (
-          <tr key={i} className="hover:bg-gray-50">
-            <td className="py-3 text-sm text-gray-800">{row.item}</td>
-            <td className="py-3 text-sm text-gray-600">{row.office}</td>
-            <td className="py-3 text-sm tabular-nums text-gray-600">{fmt(row.amount)}</td>
-            <td className="py-3">
-              <button
-                type="button"
-                aria-label={`Edit ${row.item}`}
-                className="text-gray-400 hover:text-gray-700"
+interface HighValueRow {
+  key: string;
+  purpose: string;
+  office: string;
+  amount: string;
+}
+
+const HighValueTable = ({ rows }: { rows: HighValueRow[] }) => {
+  if (rows.length === 0) return <EmptyState message="No high-value requests." />;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[400px] text-sm">
+        <thead>
+          <tr className="border-b border-gray-100">
+            {['Purpose', 'Office (Section)', 'Amount'].map((h) => (
+              <th
+                key={h}
+                className="pb-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400"
               >
-                <Pencil className="size-4" aria-hidden="true" />
-              </button>
-            </td>
+                {h}
+              </th>
+            ))}
           </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
+          {rows.map((row) => (
+            <tr key={row.key} className="hover:bg-gray-50">
+              <td className="py-3 text-sm text-gray-800">{row.purpose}</td>
+              <td className="py-3 text-sm text-gray-600">{row.office}</td>
+              <td className="py-3 text-sm tabular-nums text-gray-600">{fmt(parseAmount(row.amount))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+
+const DashboardSkeleton = () => (
+  <div className="min-h-full p-4 sm:p-6">
+    <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
+
+    <div className="mt-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="h-8 w-16 animate-pulse rounded bg-gray-200" />
+          <div className="mt-2 h-4 w-24 animate-pulse rounded bg-gray-200" />
+        </div>
+      ))}
+    </div>
+
+    <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-64 animate-pulse rounded-xl bg-white shadow-sm" />
         ))}
-      </tbody>
-    </table>
+      </div>
+      <div className="flex flex-col gap-5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-56 animate-pulse rounded-xl bg-white shadow-sm" />
+        ))}
+      </div>
+    </div>
   </div>
 );
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BacDashboard = () => {
-  const [year, setYear] = useState('2025');
-  const [period, setPeriod] = useState('whole_year');
+  const [year, setYear] = useState(CURRENT_YEAR);
+  const [period, setPeriod] = useState<Period>('whole_year');
 
-  const budgetTotal = BUDGET_MONTHLY.reduce((s, v) => s + v, 0);
+  const { data, isLoading, isError } = useDashboard({ year });
+
+  if (isLoading) return <DashboardSkeleton />;
+
+  if (isError || !data) {
+    return (
+      <div className="min-h-full p-4 sm:p-6">
+        <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-destructive">Failed to load dashboard data. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredMonths = filterMonthsByPeriod(data.budget_utilization_by_month.months, period);
+  const budgetTotal = filteredMonths.reduce((s, m) => s + m.total, 0);
+
+  const sectionLabels = data.requests_per_section.map((s) => s.office);
+  const sectionSeries = data.requests_per_section.map((s) => s.count);
+  const sectionColors = cycleColors(SECTION_COLOR_PALETTE, sectionLabels.length);
+
+  const budgetSectionLabels = data.budget_per_section.map((s) => s.office);
+  const budgetSectionSeries = data.budget_per_section.map((s) => s.total);
+  const budgetSectionColors = cycleColors(BUDGET_SECTION_COLOR_PALETTE, budgetSectionLabels.length);
+
+  const categoryLabels = data.requests_per_category.map((c) => c.category);
+  const categorySeries = data.requests_per_category.map((c) => c.count);
+  const categoryColors = cycleColors(CATEGORY_COLOR_PALETTE, categoryLabels.length);
+
+  const recentRequestRows: RecentRequestRow[] = data.recent_requests.map((r, i) => ({
+    key: r.rf_number ?? r.pr_number ?? String(i),
+    identifier: r.rf_number ?? r.pr_number ?? '—',
+    requester: r.requester ?? '—',
+    amount: r.total_amount,
+    status: r.status,
+  }));
+
+  const highValueRows: HighValueRow[] = data.high_value_requests.map((r, i) => ({
+    key: r.rf_number ?? String(i),
+    purpose: r.purpose,
+    office: r.office ?? '—',
+    amount: r.total_amount,
+  }));
 
   return (
     <div className="min-h-full p-4 sm:p-6">
@@ -289,7 +353,7 @@ export const BacDashboard = () => {
       <div className="mt-4 flex flex-wrap gap-3">
         <select
           value={year}
-          onChange={(e) => setYear(e.target.value)}
+          onChange={(e) => setYear(Number(e.target.value))}
           aria-label="Select year"
           className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-600/40"
         >
@@ -300,7 +364,7 @@ export const BacDashboard = () => {
 
         <select
           value={period}
-          onChange={(e) => setPeriod(e.target.value)}
+          onChange={(e) => setPeriod(e.target.value as Period)}
           aria-label="Select period"
           className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-600/40"
         >
@@ -314,28 +378,28 @@ export const BacDashboard = () => {
       <div className="mt-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard
           label="Total Requests"
-          value={178}
+          value={data.kpi.total_requests}
           icon={FileText}
           iconBg="bg-amber-100"
           iconColor="text-amber-600"
         />
         <StatCard
           label="Pending Requests"
-          value={72}
+          value={data.kpi.pending_requests}
           icon={Clock}
           iconBg="bg-pink-100"
           iconColor="text-pink-600"
         />
         <StatCard
           label="Approved Requests"
-          value={63}
+          value={data.kpi.approved_requests}
           icon={CheckCircle}
           iconBg="bg-violet-100"
           iconColor="text-violet-600"
         />
         <StatCard
           label="Completed Requests"
-          value={43}
+          value={data.kpi.completed_requests}
           icon={ShoppingBag}
           iconBg="bg-emerald-100"
           iconColor="text-emerald-600"
@@ -357,20 +421,20 @@ export const BacDashboard = () => {
           >
             <ReactApexChart
               type="bar"
-              series={[{ name: 'Budget', data: BUDGET_MONTHLY }]}
-              options={budgetBarOptions}
+              series={[{ name: 'Budget', data: filteredMonths.map((m) => m.total) }]}
+              options={makeBudgetBarOptions(filteredMonths.map((m) => m.label))}
               height={260}
             />
           </Card>
 
           {/* Recent Requests */}
           <Card title="Recent Requests">
-            <RecentRequestsTable />
+            <RecentRequestsTable rows={recentRequestRows} />
           </Card>
 
           {/* Recent High-Value Requests */}
           <Card title="Recent High-Value Requests">
-            <HighValueTable />
+            <HighValueTable rows={highValueRows} />
           </Card>
         </div>
 
@@ -378,32 +442,44 @@ export const BacDashboard = () => {
         <div className="flex flex-col gap-5">
           {/* Requests Per Section */}
           <Card title="Requests Per Section">
-            <ReactApexChart
-              type="donut"
-              series={[52, 38, 45, 28, 15]}
-              options={sectionDonutOptions}
-              height={220}
-            />
+            {sectionLabels.length === 0 ? (
+              <EmptyState message="No section data available." />
+            ) : (
+              <ReactApexChart
+                type="donut"
+                series={sectionSeries}
+                options={makeDonutOptions(sectionLabels, sectionColors)}
+                height={220}
+              />
+            )}
           </Card>
 
           {/* Budget Utilization Per Section */}
           <Card title="Budget Utilization Per Section">
-            <ReactApexChart
-              type="donut"
-              series={[1850000, 1250000, 980000, 620000, 428500]}
-              options={budgetSectionOptions}
-              height={220}
-            />
+            {budgetSectionLabels.length === 0 ? (
+              <EmptyState message="No section data available." />
+            ) : (
+              <ReactApexChart
+                type="donut"
+                series={budgetSectionSeries}
+                options={makeDonutOptions(budgetSectionLabels, budgetSectionColors, (val) => `₱${fmt(val)}`)}
+                height={220}
+              />
+            )}
           </Card>
 
           {/* Requests Per Category */}
           <Card title="Requests Per Category">
-            <ReactApexChart
-              type="donut"
-              series={[42, 35, 48, 28, 25]}
-              options={categoryDonutOptions}
-              height={220}
-            />
+            {categoryLabels.length === 0 ? (
+              <EmptyState message="No category data available." />
+            ) : (
+              <ReactApexChart
+                type="donut"
+                series={categorySeries}
+                options={makeDonutOptions(categoryLabels, categoryColors)}
+                height={220}
+              />
+            )}
           </Card>
         </div>
       </div>

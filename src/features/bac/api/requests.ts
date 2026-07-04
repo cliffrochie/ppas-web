@@ -8,7 +8,7 @@ const bacRequestsApi = {
     id: number,
     payload: UpdatePrStatusPayload,
   ): Promise<ApiResponse<PurchaseRequest>> => {
-    const { data } = await api.patch(`/requests/${id}/status`, payload);
+    const { data } = await api.patch(`/purchase-requests/${id}`, payload);
     return data;
   },
 };

@@ -28,6 +28,28 @@ interface RfqFilters {
   page?: number;
 }
 
+// The `Create/UpdateRfqPayload` types (from `@/types`) still document a
+// `file_path` field, but the backend's StoreRfqRequest/UpdateRfqRequest
+// FormRequests actually accept a multipart `file` upload — `file_path` is
+// derived server-side and is never accepted from the client. These Input
+// types swap `file_path` for an optional `File` to match the real contract.
+export type CreateRfqInput = Omit<CreateRfqPayload, 'file_path'> & { file?: File };
+export type UpdateRfqInput = Omit<UpdateRfqPayload, 'file_path'> & { file?: File };
+
+const buildRfqFormData = (payload: CreateRfqInput | UpdateRfqInput): FormData => {
+  const formData = new FormData();
+  if ('purchase_request_id' in payload && payload.purchase_request_id !== undefined) {
+    formData.append('purchase_request_id', String(payload.purchase_request_id));
+  }
+  if (payload.prepared_by_id !== undefined) {
+    formData.append('prepared_by_id', String(payload.prepared_by_id));
+  }
+  if (payload.deadline) formData.append('deadline', payload.deadline);
+  if (payload.status) formData.append('status', payload.status);
+  if (payload.file) formData.append('file', payload.file);
+  return formData;
+};
+
 const rfqsApi = {
   list: async (filters: RfqFilters): Promise<PaginatedResponse<Rfq>> => {
     const { data } = await api.get('/rfqs', { params: filters });
@@ -39,13 +61,30 @@ const rfqsApi = {
     return data;
   },
 
-  create: async (payload: CreateRfqPayload): Promise<ApiResponse<Rfq>> => {
-    const { data } = await api.post('/rfqs', payload);
+  create: async (payload: CreateRfqInput): Promise<ApiResponse<Rfq>> => {
+    const { data } = await api.post('/rfqs', buildRfqFormData(payload), {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
-  update: async (id: number, payload: UpdateRfqPayload): Promise<ApiResponse<Rfq>> => {
-    const { data } = await api.patch(`/rfqs/${id}`, payload);
+  update: async (id: number, payload: UpdateRfqInput): Promise<ApiResponse<Rfq>> => {
+    if (!payload.file) {
+      // No new file — plain JSON PATCH (also the only way to null out `deadline`)
+      const { data } = await api.patch(`/rfqs/${id}`, {
+        prepared_by_id: payload.prepared_by_id,
+        deadline: payload.deadline,
+        status: payload.status,
+      });
+      return data;
+    }
+
+    // Replacing the file — multipart POST with Laravel method-spoofing
+    const formData = buildRfqFormData(payload);
+    formData.append('_method', 'PATCH');
+    const { data } = await api.post(`/rfqs/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 
@@ -73,7 +112,7 @@ export const useCreateRfq = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateRfqPayload) => rfqsApi.create(payload),
+    mutationFn: (payload: CreateRfqInput) => rfqsApi.create(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['rfqs'] });
       toast.success(response.message);
@@ -85,7 +124,7 @@ export const useUpdateRfq = (id: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: UpdateRfqPayload) => rfqsApi.update(id, payload),
+    mutationFn: (payload: UpdateRfqInput) => rfqsApi.update(id, payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['rfqs', id] });
       queryClient.invalidateQueries({ queryKey: ['rfqs'] });

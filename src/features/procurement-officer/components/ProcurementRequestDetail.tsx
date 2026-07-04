@@ -1,21 +1,25 @@
 import { useState, type ReactNode } from 'react';
 import { Check, File, FileText, Image, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextContent } from '@/components/ui/rich-text-content';
 import { cn } from '@/utils';
 import { api } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/authStore';
 import type {
   PurchaseRequest,
   PurchaseRequestStatus,
   PrStatusHistory,
   User,
   ApiResponse,
+  PaginatedResponse,
   PurchaseOrder,
 } from '@/types';
 import { RequestStatusBadge } from '@/features/requests';
+import { useRequestStatusHistories } from '@/features/requests/api/requests';
 import { useUpdateRequestStatus } from '../api/requests';
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
@@ -115,16 +119,40 @@ const LabelValue = ({ label, children }: { label: string; children: ReactNode })
 
 const useGeneratePurchaseOrder = (requestId: number) => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   return useMutation({
     mutationFn: (): Promise<ApiResponse<PurchaseOrder>> =>
       api
-        .post('/purchase-orders', { purchase_request_id: requestId })
+        .post('/purchase-orders', {
+          purchase_request_id: requestId,
+          prepared_by_id: user?.id,
+        })
         .then((res) => res.data as ApiResponse<PurchaseOrder>),
     onSuccess: () => {
       toast.success('Purchase Order generated');
       queryClient.invalidateQueries({ queryKey: ['requests', requestId] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
     },
+  });
+};
+
+/**
+ * Looks up the Purchase Order generated for this PR, if any. `PurchaseRequestResource`
+ * doesn't embed a `purchase_order` relation — it's a separate resource, filtered here
+ * by `purchase_request_id` (a supported filter on `GET /purchase-orders`). Only queried
+ * once the PR has actually reached a PO-bearing status.
+ */
+const usePurchaseOrderForRequest = (requestId: number, enabled: boolean) => {
+  return useQuery({
+    queryKey: ['purchase-orders', { purchase_request_id: requestId }] as const,
+    queryFn: async (): Promise<PaginatedResponse<PurchaseOrder>> => {
+      const { data } = await api.get('/purchase-orders', {
+        params: { purchase_request_id: requestId, per_page: 1 },
+      });
+      return data;
+    },
+    enabled,
   });
 };
 
@@ -134,9 +162,9 @@ type PpuDisapprovalFromStatus = 'forwarded_to_ppu' | 'pr_prepared';
 
 const PPU_DISAPPROVAL_SOURCES: PpuDisapprovalFromStatus[] = ['forwarded_to_ppu', 'pr_prepared'];
 
-const isPpuDisapproval = (request: PurchaseRequest) =>
+const isPpuDisapproval = (request: PurchaseRequest, histories: PrStatusHistory[]) =>
   request.status === 'disapproved' &&
-  (request.status_histories ?? []).some(
+  histories.some(
     (h) =>
       h.to_status === 'disapproved' &&
       h.from_status !== null &&
@@ -150,14 +178,22 @@ const findHistoryEntry = (
 
 interface ProcurementReviewPanelProps {
   request: PurchaseRequest;
+  histories: PrStatusHistory[];
 }
 
-const ProcurementReviewPanel = ({ request }: ProcurementReviewPanelProps) => {
+const ProcurementReviewPanel = ({ request, histories }: ProcurementReviewPanelProps) => {
   const [remarks, setRemarks] = useState('');
   const { mutate: updateStatus, isPending: isUpdating } = useUpdateRequestStatus(request.id);
   const { mutate: generatePo, isPending: isGenerating } = useGeneratePurchaseOrder(request.id);
 
-  const histories = request.status_histories ?? [];
+  const isPoBearingStatus =
+    request.status === 'abstract_prepared' ||
+    request.status === 'bac_resolution_noa' ||
+    request.status === 'po_prepared' ||
+    request.status === 'completed';
+
+  const { data: poResponse } = usePurchaseOrderForRequest(request.id, isPoBearingStatus);
+  const purchaseOrder = poResponse?.data[0];
 
   // ── State 1: forwarded_to_ppu ──────────────────────────────────────────────
   if (request.status === 'forwarded_to_ppu') {
@@ -347,7 +383,7 @@ const ProcurementReviewPanel = ({ request }: ProcurementReviewPanelProps) => {
   }
 
   // ── State 5 (PPU disapproval detection — before state 4 fallback) ──────────
-  if (isPpuDisapproval(request)) {
+  if (isPpuDisapproval(request, histories)) {
     const disapprovalEntry = histories.find(
       (h) =>
         h.to_status === 'disapproved' &&
@@ -401,7 +437,6 @@ const ProcurementReviewPanel = ({ request }: ProcurementReviewPanelProps) => {
     const prApprovalEntry = findHistoryEntry(histories, 'pr_approved');
     const previousRemarks = prApprovalEntry?.remarks ?? '';
 
-    const purchaseOrder = request.purchase_order;
     const poNumber = purchaseOrder?.po_number ?? 'N/A';
     const poId = purchaseOrder?.id;
 
@@ -438,8 +473,12 @@ const ProcurementReviewPanel = ({ request }: ProcurementReviewPanelProps) => {
             PO Generated: {poNumber}
           </div>
           {poId && (
-            <Button variant="outline" className="mt-3 w-full" asChild>
-              <Link to={`/procurement-officer/purchase-orders/${poId}`}>View PO</Link>
+            <Button
+              variant="outline"
+              className="mt-3 w-full"
+              render={<Link to={`/procurement-officer/purchase-orders/${poId}`} />}
+            >
+              View PO
             </Button>
           )}
         </div>
@@ -465,8 +504,13 @@ const ProcurementReviewPanel = ({ request }: ProcurementReviewPanelProps) => {
 
 // ─── Approval chain card ───────────────────────────────────────────────────────
 
-const ApprovalChain = ({ request }: { request: PurchaseRequest }) => {
-  const histories = request.status_histories ?? [];
+const ApprovalChain = ({
+  request,
+  histories,
+}: {
+  request: PurchaseRequest;
+  histories: PrStatusHistory[];
+}) => {
   const completedCount = STATUS_COMPLETED_COUNT[request.status];
 
   return (
@@ -545,6 +589,8 @@ export const ProcurementRequestDetail = ({ request }: ProcurementRequestDetailPr
   const items = request.items ?? [];
   const attachments = request.attachments ?? [];
   const totalQty = items.reduce((sum, item) => sum + parseFloat(item.quantity), 0);
+  const { data: historiesResponse } = useRequestStatusHistories(request.id);
+  const histories = historiesResponse?.data ?? [];
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -590,13 +636,10 @@ export const ProcurementRequestDetail = ({ request }: ProcurementRequestDetailPr
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.item_description}</p>
                         {item.specifications && (
-                          <div className="mt-0.5 space-y-0.5">
-                            {item.specifications.split('\n').map((spec, i) => (
-                              <p key={i} className="text-xs italic text-gray-500">
-                                {spec}
-                              </p>
-                            ))}
-                          </div>
+                          <RichTextContent
+                            html={item.specifications}
+                            className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                          />
                         )}
                       </div>
                       <p className="shrink-0 tabular-nums font-medium text-gray-900">
@@ -650,13 +693,10 @@ export const ProcurementRequestDetail = ({ request }: ProcurementRequestDetailPr
                         <td className="py-3 pr-4">
                           <p className="font-medium text-gray-900">{item.item_description}</p>
                           {item.specifications && (
-                            <div className="mt-0.5 space-y-0.5">
-                              {item.specifications.split('\n').map((spec, i) => (
-                                <p key={i} className="text-xs italic text-gray-500">
-                                  {spec}
-                                </p>
-                              ))}
-                            </div>
+                            <RichTextContent
+                              html={item.specifications}
+                              className="mt-0.5 italic text-gray-500 [&_p]:text-xs"
+                            />
                           )}
                         </td>
                         <td className="py-3 pr-4 text-right tabular-nums text-gray-700">
@@ -724,8 +764,8 @@ export const ProcurementRequestDetail = ({ request }: ProcurementRequestDetailPr
 
       {/* ─── Right column ─────────────────────────────────────────────── */}
       <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
-        <ProcurementReviewPanel request={request} />
-        <ApprovalChain request={request} />
+        <ProcurementReviewPanel request={request} histories={histories} />
+        <ApprovalChain request={request} histories={histories} />
       </div>
     </div>
   );

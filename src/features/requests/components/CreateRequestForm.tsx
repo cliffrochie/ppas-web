@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -29,7 +30,12 @@ import { isApiValidationError } from '@/types';
 import type { PurchaseRequest, User } from '@/types';
 import { useUsersInfinite } from '../api/users';
 import { useCategories } from '../api/categories';
-import { useCreateRequest, useUpdateRequest, requestsApi } from '../api/requests';
+import {
+  useCreateRequest,
+  useUpdateRequest,
+  useCreatePurchaseRequestItem,
+  requestsApi,
+} from '../api/requests';
 
 // ─── Zod schema ──────────────────────────────────────────────────────────────
 
@@ -48,7 +54,10 @@ const itemSchema = z.object({
 });
 
 const createRequestSchema = z.object({
-  end_user_name: z.string().min(1, 'End-user / responsible person is required'),
+  requester_id: z
+    .number({ message: 'Please select an end-user' })
+    .int()
+    .positive('Please select an end-user'),
   category_id: z
     .number({ message: 'Please select a category' })
     .int()
@@ -87,8 +96,13 @@ const getFullName = (user: User): string =>
     .join(' ');
 
 interface EndUserComboboxProps {
-  value: string;
-  onChange: (name: string) => void;
+  /** The selected user's id — the actual RHF form value. */
+  value: number | undefined;
+  /** The selected user's display name — tracked separately since the form only
+   * stores the id (backend FK), not a name string. Seeded from `request.requester`
+   * in edit mode since the id alone isn't human-readable. */
+  displayName: string;
+  onChange: (id: number, displayName: string) => void;
   hasError?: boolean;
 }
 
@@ -103,7 +117,7 @@ const useDebounce = (value: string, delay: number): string => {
   return debounced;
 };
 
-const EndUserCombobox = ({ value, onChange, hasError }: EndUserComboboxProps) => {
+const EndUserCombobox = ({ value, displayName, onChange, hasError }: EndUserComboboxProps) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,22 +179,22 @@ const EndUserCombobox = ({ value, onChange, hasError }: EndUserComboboxProps) =>
   return (
     <div ref={containerRef} className="relative" onKeyDown={handleKeyDown}>
       <button
-        id="end_user_name_trigger"
+        id="requester_id_trigger"
         type="button"
         role="combobox"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-required="true"
         aria-invalid={hasError || undefined}
-        aria-describedby={hasError ? 'end_user_name_err' : undefined}
+        aria-describedby={hasError ? 'requester_id_err' : undefined}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
           'flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
           hasError && 'border-destructive ring-3 ring-destructive/20',
-          !value && 'text-muted-foreground',
+          !displayName && 'text-muted-foreground',
         )}
       >
-        <span className="truncate">{value || 'Select end-user...'}</span>
+        <span className="truncate">{displayName || 'Select end-user...'}</span>
         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
 
@@ -217,14 +231,14 @@ const EndUserCombobox = ({ value, onChange, hasError }: EndUserComboboxProps) =>
               <>
                 {users.map((user) => {
                   const fullName = getFullName(user);
-                  const selected = value === fullName;
+                  const selected = value === user.id;
                   return (
                     <li
                       key={user.id}
                       role="option"
                       aria-selected={selected}
                       onClick={() => {
-                        onChange(fullName);
+                        onChange(user.id, fullName);
                         setOpen(false);
                         setQuery('');
                       }}
@@ -290,6 +304,7 @@ const ItemRow = ({
   canRemove,
   onRemove,
   register,
+  control,
   errors,
 }: ItemRowProps) => {
   const itemErrors = errors.items?.[index];
@@ -393,12 +408,18 @@ const ItemRow = ({
           <Label htmlFor={`items.${index}.specifications`} className="text-xs font-medium">
             Details / Specification
           </Label>
-          <textarea
-            id={`items.${index}.specifications`}
-            rows={2}
-            placeholder="Details here..."
-            className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            {...register(`items.${index}.specifications`)}
+          <Controller
+            control={control}
+            name={`items.${index}.specifications`}
+            render={({ field }) => (
+              <RichTextEditor
+                id={`items.${index}.specifications`}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="Details here..."
+              />
+            )}
           />
         </div>
 
@@ -437,6 +458,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const createMutation = useCreateRequest();
   const updateMutation = useUpdateRequest(request?.id ?? 0);
+  const createItemMutation = useCreatePurchaseRequestItem();
 
   // File attachment state — not in RHF because files are uploaded after PR creation
   const [files, setFiles] = useState<File[]>([]);
@@ -446,6 +468,13 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
   // Existing attachments managed in local state so removals show instantly
   const [existingAttachments, setExistingAttachments] = useState(
     request?.attachments ?? [],
+  );
+
+  // Display name for the selected end-user — the RHF value only stores the id
+  // (backend FK), so the human-readable name is tracked alongside it here.
+  // Seeded from the eager-loaded `requester` relation in edit mode.
+  const [requesterName, setRequesterName] = useState(
+    request?.requester ? getFullName(request.requester) : '',
   );
 
   // Tracks which button triggered the submit so onSubmit can distinguish draft vs submit
@@ -463,7 +492,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
     reValidateMode: 'onChange',
     defaultValues: request
       ? {
-          end_user_name: request.end_user_name ?? '',
+          requester_id: request.requester_id,
           category_id: request.category_id ?? undefined,
           purpose: request.purpose ?? '',
           items: (request.items ?? []).map((item) => ({
@@ -474,7 +503,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
           })),
         }
       : {
-          end_user_name: '',
+          requester_id: undefined,
           category_id: undefined,
           purpose: '',
           items: [{ ...DEFAULT_ITEM }],
@@ -528,29 +557,48 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
 
   const handleDeleteExisting = async (attId: number) => {
     if (!request) return;
-    await requestsApi.deleteAttachment(request.id, attId);
+    await requestsApi.deleteAttachment(attId);
     setExistingAttachments((prev) => prev.filter((a) => a.id !== attId));
     queryClient.invalidateQueries({ queryKey: ['requests', request.id] });
   };
 
   // ── Form submission ───────────────────────────────────────────────────────
 
+  /** Builds the `POST /purchase-request-items` payload for one form row. */
+  const toItemPayload = (
+    item: CreateRequestFormValues['items'][number],
+    purchaseRequestId: number,
+  ) => ({
+    purchase_request_id: purchaseRequestId,
+    item_description: item.item_description,
+    specifications: item.specifications || undefined,
+    unit_of_measure: 'unit',
+    quantity: item.quantity,
+    unit_cost: item.unit_cost,
+    total_cost: item.unit_cost * item.quantity,
+  });
+
   const onSubmit = async (values: CreateRequestFormValues) => {
     if (request) {
-      // Edit mode — PATCH the request then upload any new attachments
+      // Edit mode — PATCH the top-level fields, then reconcile line items.
+      // Items have no partial-update UI (no per-row "existing id" tracking), so
+      // the simplest correct approach is delete-all-then-recreate: remove every
+      // item currently on the PR and re-POST the full current list from the form.
       try {
         await updateMutation.mutateAsync({
-          end_user_name: values.end_user_name,
+          requester_id: values.requester_id,
           category_id: values.category_id,
           purpose: values.purpose,
-          items: values.items.map((item) => ({
-            item_description: item.item_description,
-            specifications: item.specifications || undefined,
-            unit_of_measure: 'unit',
-            quantity: item.quantity,
-            unit_cost: item.unit_cost,
-          })),
         });
+
+        await Promise.allSettled(
+          (request.items ?? []).map((item) => requestsApi.deleteItem(item.id)),
+        );
+        await Promise.allSettled(
+          values.items.map((item) =>
+            createItemMutation.mutateAsync(toItemPayload(item, request.id)),
+          ),
+        );
 
         if (files.length > 0) {
           await Promise.allSettled(
@@ -558,6 +606,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
           );
         }
 
+        queryClient.invalidateQueries({ queryKey: ['requests', request.id] });
         navigate(`/requests/${request.id}`);
       } catch (error) {
         if (isApiValidationError(error)) {
@@ -590,24 +639,27 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
 
     try {
       const response = await createMutation.mutateAsync({
-        end_user_name: values.end_user_name,
+        requester_id: values.requester_id,
         requesting_office_id: user.office_id,
         category_id: values.category_id,
         purpose: values.purpose,
-        items: values.items.map((item) => ({
-          item_description: item.item_description,
-          specifications: item.specifications || undefined,
-          unit_of_measure: 'unit',
-          quantity: item.quantity,
-          unit_cost: item.unit_cost,
-        })),
-        ...(isDraft && { is_draft: true }),
+        status: isDraft ? 'draft' : 'submitted',
       });
+
+      const purchaseRequestId = response.data.id;
+
+      // Items have no inline `items` field on the backend — create each one
+      // individually now that the parent PR's id is known (mirrors attachments).
+      await Promise.allSettled(
+        values.items.map((item) =>
+          createItemMutation.mutateAsync(toItemPayload(item, purchaseRequestId)),
+        ),
+      );
 
       // Upload any selected attachments (fire-and-forget individually; failures are non-fatal)
       if (files.length > 0) {
         await Promise.allSettled(
-          files.map((file) => requestsApi.uploadAttachment(response.data.id, file)),
+          files.map((file) => requestsApi.uploadAttachment(purchaseRequestId, file)),
         );
       }
 
@@ -645,24 +697,28 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* End-User / Responsible Person */}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="end_user_name_trigger" className="text-sm font-medium">
+                <Label htmlFor="requester_id_trigger" className="text-sm font-medium">
                   End-User / Responsible Person{' '}
                   <span className="text-red-500" aria-hidden="true">*</span>
                 </Label>
                 <Controller
                   control={control}
-                  name="end_user_name"
+                  name="requester_id"
                   render={({ field }) => (
                     <EndUserCombobox
                       value={field.value}
-                      onChange={field.onChange}
-                      hasError={!!errors.end_user_name}
+                      displayName={requesterName}
+                      onChange={(id, name) => {
+                        field.onChange(id);
+                        setRequesterName(name);
+                      }}
+                      hasError={!!errors.requester_id}
                     />
                   )}
                 />
-                {errors.end_user_name && (
-                  <p id="end_user_name_err" className="text-xs text-destructive">
-                    {errors.end_user_name.message}
+                {errors.requester_id && (
+                  <p id="requester_id_err" className="text-xs text-destructive">
+                    {errors.requester_id.message}
                   </p>
                 )}
               </div>

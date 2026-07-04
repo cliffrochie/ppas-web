@@ -6,11 +6,9 @@ import type { User } from './user';
 export const PurchaseOrderStatus = {
   Draft: 'draft',
   ForSignature: 'for_signature',
-  Signed: 'signed',
-  Acknowledged: 'acknowledged',
-  ForCompletion: 'for_completion',
+  SupplierAcceptance: 'supplier_acceptance',
+  DeliveryInspection: 'delivery_inspection',
   Completed: 'completed',
-  Failed: 'failed',
 } as const;
 
 export type PurchaseOrderStatus =

@@ -1,7 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
-import type { ApiResponse, PaginatedResponse, Supplier, CreateSupplierPayload } from '@/types';
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  Supplier,
+  SupplierDocument,
+  CreateSupplierPayload,
+  CreateSupplierDocumentPayload,
+} from '@/types';
 
 interface SupplierFilters {
   search?: string;
@@ -31,6 +38,18 @@ const suppliersApi = {
 
   update: async (id: number, payload: Partial<CreateSupplierPayload>): Promise<ApiResponse<Supplier>> => {
     const { data } = await api.patch(`/suppliers/${id}`, payload);
+    return data;
+  },
+
+  uploadDocument: async (
+    payload: CreateSupplierDocumentPayload,
+  ): Promise<ApiResponse<SupplierDocument>> => {
+    const formData = new FormData();
+    formData.append('supplier_id', String(payload.supplier_id));
+    formData.append('file', payload.file);
+    const { data } = await api.post('/supplier-documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data;
   },
 };
@@ -69,6 +88,20 @@ export const useUpdateSupplier = (id: number) => {
       queryClient.invalidateQueries({ queryKey: ['suppliers', id] });
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       toast.success(response.message);
+    },
+  });
+};
+
+// Supplier documents don't exist until the parent supplier does (`supplier_id`
+// is a required FK) — call this once per file after `useCreateSupplier`
+// succeeds, not as part of the create FormData itself.
+export const useUploadSupplierDocument = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateSupplierDocumentPayload) => suppliersApi.uploadDocument(payload),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers', variables.supplier_id] });
     },
   });
 };

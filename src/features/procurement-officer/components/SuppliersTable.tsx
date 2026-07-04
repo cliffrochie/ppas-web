@@ -20,16 +20,16 @@ import type { Supplier } from '@/types';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-const SupplierStatusBadge = ({ status }: { status: Supplier['status'] }) => (
+const SupplierStatusBadge = ({ isActive }: { isActive: Supplier['is_active'] }) => (
   <span
     className={cn(
       'inline-flex items-center rounded-full px-3 py-0.5 text-xs font-medium',
-      status === 'active'
+      isActive
         ? 'bg-green-600 text-white'
         : 'bg-rose-200 text-rose-700',
     )}
   >
-    {status === 'active' ? 'Active' : 'Inactive'}
+    {isActive ? 'Active' : 'Inactive'}
   </span>
 );
 
@@ -49,15 +49,15 @@ interface SuppliersTableProps {
 
 const columnHelper = createColumnHelper<Supplier>();
 
-const SORTABLE_COLUMNS = ['name', 'city', 'category', 'contact_person', 'phone', 'status'];
+const SORTABLE_COLUMNS = ['name', 'address_city', 'contact_person', 'phone', 'is_active'];
 
 const TABLE_COLUMNS = [
   { key: 'name', label: 'Supplier Name' },
-  { key: 'city', label: 'Address' },
+  { key: 'address_city', label: 'Address' },
   { key: 'category', label: 'Category' },
   { key: 'contact_person', label: 'Contact Person' },
   { key: 'phone', label: 'Contact No.' },
-  { key: 'status', label: 'Status' },
+  { key: 'is_active', label: 'Status' },
 ];
 
 const SKELETON_ROWS = Array.from({ length: 8 });
@@ -81,16 +81,17 @@ export const SuppliersTable = ({
       ),
     }),
     columnHelper.display({
-      id: 'city',
+      id: 'address_city',
       header: 'Address',
       cell: ({ row }) => {
-        const parts = [row.original.city, row.original.state].filter(Boolean);
+        const parts = [row.original.address_city, row.original.address_province].filter(Boolean);
         return parts.length > 0 ? parts.join(', ') : '—';
       },
     }),
-    columnHelper.accessor('category', {
+    columnHelper.display({
+      id: 'category',
       header: 'Category',
-      cell: (info) => info.getValue(),
+      cell: ({ row }) => row.original.category?.name ?? '—',
     }),
     columnHelper.accessor('contact_person', {
       header: 'Contact Person',
@@ -100,9 +101,9 @@ export const SuppliersTable = ({
       header: 'Contact No.',
       cell: (info) => info.getValue() ?? '—',
     }),
-    columnHelper.accessor('status', {
+    columnHelper.accessor('is_active', {
       header: 'Status',
-      cell: (info) => <SupplierStatusBadge status={info.getValue()} />,
+      cell: (info) => <SupplierStatusBadge isActive={info.getValue()} />,
     }),
     columnHelper.display({
       id: 'action',
@@ -113,11 +114,9 @@ export const SuppliersTable = ({
           size="icon-sm"
           aria-label={`Edit ${row.original.name}`}
           className="text-muted-foreground hover:text-foreground"
-          asChild
+          render={<Link to={`/procurement-officer/suppliers/${row.original.id}`} />}
         >
-          <Link to={`/procurement-officer/suppliers/${row.original.id}`}>
-            <Pencil />
-          </Link>
+          <Pencil />
         </Button>
       ),
     }),
@@ -242,11 +241,11 @@ export const SuppliersTable = ({
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium text-green-700">{supplier.name}</span>
-              <SupplierStatusBadge status={supplier.status} />
+              <SupplierStatusBadge isActive={supplier.is_active} />
             </div>
-            <p className="mt-1 text-sm text-gray-600">{supplier.category}</p>
+            <p className="mt-1 text-sm text-gray-600">{supplier.category?.name ?? '—'}</p>
             <div className="mt-1 text-xs text-gray-500">
-              {[supplier.city, supplier.state].filter(Boolean).join(', ') || '—'}
+              {[supplier.address_city, supplier.address_province].filter(Boolean).join(', ') || '—'}
             </div>
             {supplier.contact_person && (
               <p className="mt-0.5 text-xs text-gray-500">{supplier.contact_person}</p>

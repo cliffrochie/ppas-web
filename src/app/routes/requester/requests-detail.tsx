@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRequest } from '@/features/requests';
+import { useRequestStatusHistories } from '@/features/requests/api/requests';
 import { RequestDetail } from '@/features/requests/components/RequestDetail';
 
 const RequestDetailPage = () => {
@@ -9,6 +10,7 @@ const RequestDetailPage = () => {
   const numericId = Number(id);
 
   const { data: response, isLoading, isError } = useRequest(numericId);
+  const { data: historiesResponse } = useRequestStatusHistories(numericId);
 
   return (
     <>
@@ -24,12 +26,12 @@ const RequestDetailPage = () => {
           </Link>
           {response?.data?.status === 'draft' && (
             <Button
-              asChild
               variant="outline"
               size="sm"
               className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              render={<Link to={`/requests/${numericId}/edit`} />}
             >
-              <Link to={`/requests/${numericId}/edit`}>Edit</Link>
+              Edit
             </Button>
           )}
         </div>
@@ -67,7 +69,7 @@ const RequestDetailPage = () => {
         )}
 
         {!isLoading && !isError && response?.data && (
-          <RequestDetail request={response.data} />
+          <RequestDetail request={response.data} histories={historiesResponse?.data} />
         )}
       </div>
     </>

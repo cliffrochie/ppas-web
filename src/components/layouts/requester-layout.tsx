@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bell, ChevronDown, LogOut, Menu, X } from 'lucide-react';
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useLogout } from '@/features/auth';
+import { NotificationBell } from '@/features/notifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,13 +78,7 @@ export const RequesterLayout = ({ children }: RequesterLayoutProps) => {
 
           {/* Right side: bell + username (desktop) + hamburger (mobile) */}
           <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="rounded-full border border-gray-300 p-1.5 text-gray-600 hover:text-gray-900"
-            >
-              <Bell className="size-4" aria-hidden="true" />
-            </button>
+            <NotificationBell requestsPathPrefix="/requests" />
 
             {/* User dropdown — desktop only */}
             <DropdownMenu>

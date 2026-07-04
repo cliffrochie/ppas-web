@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bell, Menu, Settings } from 'lucide-react';
+import { Menu, Settings } from 'lucide-react';
 import { cn } from '@/utils';
 import { useAuthStore } from '@/stores/authStore';
+import { NotificationBell } from '@/features/notifications';
 import ppasLogo from '@/assets/ppas-logo.svg';
 
 interface NavItem {
@@ -16,10 +17,18 @@ interface AppSidebarLayoutProps {
   navItems: NavItem[];
   homeHref: string;
   roleName: string;
+  /** Role-prefixed base path for PR detail pages, e.g. '/bac/requests'. */
+  requestsPathPrefix: string;
   children: ReactNode;
 }
 
-export const AppSidebarLayout = ({ navItems, homeHref, roleName, children }: AppSidebarLayoutProps) => {
+export const AppSidebarLayout = ({
+  navItems,
+  homeHref,
+  roleName,
+  requestsPathPrefix,
+  children,
+}: AppSidebarLayoutProps) => {
   const { user } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -55,13 +64,7 @@ export const AppSidebarLayout = ({ navItems, homeHref, roleName, children }: App
           <span className="text-sm font-bold text-green-700 sm:hidden">PPAS</span>
         </NavLink>
         <div className="ml-auto">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="rounded-full border border-gray-300 p-1.5 text-gray-600 hover:text-gray-900"
-          >
-            <Bell className="size-4" aria-hidden="true" />
-          </button>
+          <NotificationBell requestsPathPrefix={requestsPathPrefix} />
         </div>
       </header>
 
