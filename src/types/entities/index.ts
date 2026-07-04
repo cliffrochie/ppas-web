@@ -35,9 +35,12 @@ export type {
   Rfq,
   RfqItem,
   CanvassResponse,
-  CreateRfqItemPayload,
   CreateRfqPayload,
+  UpdateRfqPayload,
+  CreateRfqItemPayload,
+  UpdateRfqItemPayload,
   CreateCanvassResponsePayload,
+  UpdateCanvassResponsePayload,
 } from './rfq';
 
 // ─── Procurement documents ───────────────────────────────────────────────────
@@ -46,6 +49,12 @@ export type {
   AbstractOfQuotation,
   BacResolution,
   NoticeOfAward,
+  CreateAbstractOfQuotationPayload,
+  UpdateAbstractOfQuotationPayload,
+  CreateBacResolutionPayload,
+  UpdateBacResolutionPayload,
+  CreateNoticeOfAwardPayload,
+  UpdateNoticeOfAwardPayload,
 } from './procurement';
 
 // ─── Notifications ───────────────────────────────────────────────────────────

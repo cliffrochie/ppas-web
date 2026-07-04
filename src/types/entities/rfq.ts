@@ -1,4 +1,3 @@
-import type { PurchaseRequest, PurchaseRequestItem } from './purchase-request';
 import type { User } from './user';
 
 // ─── Status enum ────────────────────────────────────────────────────────────
@@ -24,15 +23,13 @@ export interface Rfq {
   /** ISO date string: YYYY-MM-DD; submission deadline for canvassers */
   deadline: string | null;
   status: RfqStatus;
-  /** Relative storage path to the uploaded signed RFQ document */
-  file_path: string | null;
+  // file_path is write-only — never returned by the API; the signed RFQ
+  // document itself is retrieved via the pr_attachments download route.
   created_at: string;
   updated_at: string;
   // Relations (present when eager-loaded by the API)
-  purchase_request?: PurchaseRequest;
   prepared_by?: User;
   items?: RfqItem[];
-  canvass_responses?: CanvassResponse[];
 }
 
 export interface RfqItem {
@@ -47,7 +44,6 @@ export interface RfqItem {
   created_at: string;
   updated_at: string;
   // Relations
-  pr_item?: PurchaseRequestItem;
   canvass_responses?: CanvassResponse[];
 }
 
@@ -63,28 +59,58 @@ export interface CanvassResponse {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  // Relations
-  rfq_item?: RfqItem;
 }
 
 // ─── Payload types ──────────────────────────────────────────────────────────
 
+export interface CreateRfqPayload {
+  purchase_request_id: number;
+  prepared_by_id: number;
+  /** ISO date string: YYYY-MM-DD */
+  deadline?: string;
+  status?: RfqStatus;
+  /** Storage path of an already-uploaded pr_attachment (type: 'rfq') */
+  file_path?: string;
+}
+
+export interface UpdateRfqPayload {
+  prepared_by_id?: number;
+  deadline?: string | null;
+  status?: RfqStatus;
+  file_path?: string;
+}
+
 export interface CreateRfqItemPayload {
+  rfq_id: number;
   pr_item_id: number;
   item_description: string;
   unit_of_measure: string;
   quantity: number;
 }
 
-export interface CreateRfqPayload {
-  purchase_request_id: number;
-  /** ISO date string: YYYY-MM-DD */
-  deadline?: string;
-  items: CreateRfqItemPayload[];
+export interface UpdateRfqItemPayload {
+  rfq_id?: number;
+  pr_item_id?: number;
+  item_description?: string;
+  unit_of_measure?: string;
+  quantity?: number;
 }
 
 export interface CreateCanvassResponsePayload {
+  rfq_id: number;
   rfq_item_id: number;
   supplier_name: string;
   unit_price: number;
+  /** Required by the API — not computed server-side */
+  total_price: number;
+  notes?: string;
+}
+
+export interface UpdateCanvassResponsePayload {
+  rfq_id?: number;
+  rfq_item_id?: number;
+  supplier_name?: string;
+  unit_price?: number;
+  total_price?: number;
+  notes?: string | null;
 }

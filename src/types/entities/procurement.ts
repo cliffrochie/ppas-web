@@ -1,4 +1,3 @@
-import type { Rfq } from './rfq';
 import type { User } from './user';
 
 // ─── Status enum ────────────────────────────────────────────────────────────
@@ -24,15 +23,12 @@ export interface AbstractOfQuotation {
   /** Decimal stored as string */
   recommended_amount: string | null;
   status: AbstractStatus;
-  /** Relative storage path to the uploaded abstract document */
-  file_path: string | null;
+  // file_path is write-only — never returned by the API.
   approved_at: string | null;
   created_at: string;
   updated_at: string;
   // Relations (present when eager-loaded by the API)
-  rfq?: Rfq;
   prepared_by?: User;
-  bac_resolution?: BacResolution;
 }
 
 /**
@@ -44,16 +40,13 @@ export interface BacResolution {
   resolution_number: string;
   abstract_of_quotation_id: number;
   prepared_by_id: number;
-  /** Relative storage path to the uploaded resolution document */
-  file_path: string;
+  // file_path is write-only — never returned by the API.
   /** ISO date string: YYYY-MM-DD */
   issued_at: string | null;
   created_at: string;
   updated_at: string;
   // Relations (present when eager-loaded by the API)
-  abstract_of_quotation?: AbstractOfQuotation;
   prepared_by?: User;
-  notice_of_award?: NoticeOfAward;
 }
 
 /**
@@ -67,12 +60,65 @@ export interface NoticeOfAward {
   awarded_supplier: string;
   /** Decimal stored as string */
   awarded_amount: string;
-  /** Relative storage path to the uploaded NOA document */
-  file_path: string;
+  // file_path is write-only — never returned by the API.
   /** ISO date string: YYYY-MM-DD */
   issued_at: string | null;
   created_at: string;
   updated_at: string;
-  // Relations
-  bac_resolution?: BacResolution;
+}
+
+// ─── Payload types ──────────────────────────────────────────────────────────
+
+export interface CreateAbstractOfQuotationPayload {
+  rfq_id: number;
+  prepared_by_id: number;
+  recommended_supplier?: string;
+  recommended_amount?: number;
+  status?: AbstractStatus;
+  /** Storage path of an already-uploaded pr_attachment */
+  file_path?: string;
+  approved_at?: string;
+}
+
+export interface UpdateAbstractOfQuotationPayload {
+  prepared_by_id?: number;
+  recommended_supplier?: string | null;
+  recommended_amount?: number | null;
+  status?: AbstractStatus;
+  file_path?: string;
+  approved_at?: string | null;
+}
+
+export interface CreateBacResolutionPayload {
+  resolution_number: string;
+  abstract_of_quotation_id: number;
+  prepared_by_id: number;
+  /** Storage path of an already-uploaded pr_attachment; required by the API */
+  file_path: string;
+  issued_at?: string;
+}
+
+export interface UpdateBacResolutionPayload {
+  resolution_number?: string;
+  prepared_by_id?: number;
+  file_path?: string;
+  issued_at?: string | null;
+}
+
+export interface CreateNoticeOfAwardPayload {
+  noa_number: string;
+  bac_resolution_id: number;
+  awarded_supplier: string;
+  awarded_amount: number;
+  /** Storage path of an already-uploaded pr_attachment; required by the API */
+  file_path: string;
+  issued_at?: string;
+}
+
+export interface UpdateNoticeOfAwardPayload {
+  noa_number?: string;
+  awarded_supplier?: string;
+  awarded_amount?: number;
+  file_path?: string;
+  issued_at?: string | null;
 }

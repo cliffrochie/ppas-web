@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bell, Menu, X } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useLogout } from '@/features/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import ppasLogo from '@/assets/ppas-logo.svg';
 
 interface RequesterLayoutProps {
@@ -12,6 +21,7 @@ interface RequesterLayoutProps {
 export const RequesterLayout = ({ children }: RequesterLayoutProps) => {
   const { user } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -33,7 +43,7 @@ export const RequesterLayout = ({ children }: RequesterLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="border-b border-gray-200 bg-white">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
         {/* Main nav row */}
         <div className="flex h-16 items-center px-4 sm:px-8">
           {/* Brand */}
@@ -75,10 +85,28 @@ export const RequesterLayout = ({ children }: RequesterLayoutProps) => {
               <Bell className="size-4" aria-hidden="true" />
             </button>
 
-            {/* Username — desktop only */}
-            <span className="hidden text-sm font-medium text-gray-700 md:inline">
-              {userName}
-            </span>
+            {/* User dropdown — desktop only */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="User menu"
+                className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 md:flex"
+              >
+                {userName}
+                <ChevronDown className="size-3.5 text-gray-500" aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>{userName}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={isLoggingOut}
+                  onClick={() => logout()}
+                  className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                >
+                  <LogOut aria-hidden="true" />
+                  {isLoggingOut ? 'Logging out…' : 'Logout'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Hamburger — mobile only */}
             <button
@@ -111,6 +139,15 @@ export const RequesterLayout = ({ children }: RequesterLayoutProps) => {
             </nav>
             <div className="border-t border-gray-100 px-4 py-3">
               <p className="text-sm font-medium text-gray-700">{userName}</p>
+              <button
+                type="button"
+                disabled={isLoggingOut}
+                onClick={() => logout()}
+                className="mt-2 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                {isLoggingOut ? 'Logging out…' : 'Logout'}
+              </button>
             </div>
           </div>
         )}

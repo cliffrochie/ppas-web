@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useForm,
@@ -11,7 +11,7 @@ import {
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Upload, X, Paperclip } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Paperclip, ChevronsUpDown, Check } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,8 @@ import {
 import { cn } from '@/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { isApiValidationError } from '@/types';
-import type { PurchaseRequest } from '@/types';
+import type { PurchaseRequest, User } from '@/types';
+import { useUsersInfinite } from '../api/users';
 import { useCategories } from '../api/categories';
 import { useCreateRequest, useUpdateRequest, requestsApi } from '../api/requests';
 
@@ -77,6 +78,188 @@ const formatFileSize = (bytes: number): string => {
 };
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
+
+// ─── End-user combobox ───────────────────────────────────────────────────────
+
+const getFullName = (user: User): string =>
+  [user.first_name, user.middle_name, user.last_name, user.extension_name]
+    .filter(Boolean)
+    .join(' ');
+
+interface EndUserComboboxProps {
+  value: string;
+  onChange: (name: string) => void;
+  hasError?: boolean;
+}
+
+// Delays updating `debouncedValue` until `delay` ms after the last change.
+// Prevents a server request on every keystroke in the search input.
+const useDebounce = (value: string, delay: number): string => {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+};
+
+const EndUserCombobox = ({ value, onChange, hasError }: EndUserComboboxProps) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLLIElement>(null);
+
+  // 300 ms debounce — avoids firing a request on every keystroke
+  const debouncedQuery = useDebounce(query, 300);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useUsersInfinite(debouncedQuery);
+
+  // Flatten all loaded pages into a single array
+  const users = data?.pages.flatMap((page) => page.data) ?? [];
+
+  // Watch the sentinel <li> at the bottom of the list; when it enters the
+  // viewport, request the next page. Effect re-runs whenever `open` or
+  // `hasNextPage` changes so the observer is set up after the sentinel mounts.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [open, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Close on outside click; also clear the search so the next open starts fresh
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setOpen(false);
+      setQuery('');
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative" onKeyDown={handleKeyDown}>
+      <button
+        id="end_user_name_trigger"
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-required="true"
+        aria-invalid={hasError || undefined}
+        aria-describedby={hasError ? 'end_user_name_err' : undefined}
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          'flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
+          hasError && 'border-destructive ring-3 ring-destructive/20',
+          !value && 'text-muted-foreground',
+        )}
+      >
+        <span className="truncate">{value || 'Select end-user...'}</span>
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-lg bg-popover text-popover-foreground shadow-md ring-1 ring-foreground/10">
+          {/* Search input — debounced, triggers a server-side filtered refetch */}
+          <div className="border-b border-border p-2">
+            <Input
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+              placeholder="Search users..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-8 text-sm"
+              aria-label="Search users"
+            />
+          </div>
+
+          {/* User list — scrollable; sentinel at the bottom triggers next-page fetch */}
+          <ul role="listbox" aria-label="Users" className="max-h-56 overflow-y-auto p-1">
+            {isLoading ? (
+              <li className="px-2 py-4 text-center text-sm text-muted-foreground">
+                Loading users...
+              </li>
+            ) : isError ? (
+              <li className="px-2 py-4 text-center text-sm text-destructive" role="alert">
+                Failed to load users
+              </li>
+            ) : users.length === 0 ? (
+              <li className="px-2 py-4 text-center text-sm text-muted-foreground">
+                No users found
+              </li>
+            ) : (
+              <>
+                {users.map((user) => {
+                  const fullName = getFullName(user);
+                  const selected = value === fullName;
+                  return (
+                    <li
+                      key={user.id}
+                      role="option"
+                      aria-selected={selected}
+                      onClick={() => {
+                        onChange(fullName);
+                        setOpen(false);
+                        setQuery('');
+                      }}
+                      className={cn(
+                        'flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground',
+                        selected && 'bg-accent/50 font-medium',
+                      )}
+                    >
+                      <Check
+                        className={cn('size-4 shrink-0', selected ? 'opacity-100' : 'opacity-0')}
+                        aria-hidden="true"
+                      />
+                      {fullName}
+                    </li>
+                  );
+                })}
+
+                {/* Sentinel — watched by IntersectionObserver to trigger next page */}
+                {hasNextPage && (
+                  <li
+                    ref={sentinelRef}
+                    aria-hidden="true"
+                    className="px-2 py-1.5 text-center text-xs text-muted-foreground"
+                  >
+                    {isFetchingNextPage ? 'Loading more...' : ''}
+                  </li>
+                )}
+              </>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
@@ -462,22 +645,20 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* End-User / Responsible Person */}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="end_user_name" className="text-sm font-medium">
+                <Label htmlFor="end_user_name_trigger" className="text-sm font-medium">
                   End-User / Responsible Person{' '}
                   <span className="text-red-500" aria-hidden="true">*</span>
                 </Label>
-                <Input
-                  id="end_user_name"
-                  type="text"
-                  placeholder="Full name of the end-user..."
-                  aria-required="true"
-                  aria-invalid={!!errors.end_user_name}
-                  aria-describedby={errors.end_user_name ? 'end_user_name_err' : undefined}
-                  className={cn(
-                    'h-10',
-                    errors.end_user_name && 'border-destructive',
+                <Controller
+                  control={control}
+                  name="end_user_name"
+                  render={({ field }) => (
+                    <EndUserCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                      hasError={!!errors.end_user_name}
+                    />
                   )}
-                  {...register('end_user_name')}
                 />
                 {errors.end_user_name && (
                   <p id="end_user_name_err" className="text-xs text-destructive">
@@ -726,7 +907,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
         </div>
 
         {/* ── Right column: Summary + Reminders ───────────────────────── */}
-        <div className="space-y-4 lg:sticky lg:top-4">
+        <div className="space-y-4 lg:sticky lg:top-20">
           {/* Summary card */}
           <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
             <h3 className="text-sm font-semibold text-gray-800">Summary</h3>
