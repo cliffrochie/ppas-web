@@ -5,7 +5,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -97,6 +97,8 @@ export const PurchaseOrdersTable = ({
   sortState,
   onSortChange,
 }: PurchaseOrdersTableProps) => {
+  const navigate = useNavigate();
+
   const columns = [
     columnHelper.accessor('po_number', {
       header: 'PO #',
@@ -106,6 +108,7 @@ export const PurchaseOrdersTable = ({
         return (
           <Link
             to={`/procurement-officer/purchase-orders/${poId}`}
+            onClick={(e) => e.stopPropagation()}
             className="font-medium text-green-700 hover:underline"
           >
             {poNumber}
@@ -145,7 +148,12 @@ export const PurchaseOrdersTable = ({
           size="icon-sm"
           aria-label={`Edit PO ${row.original.po_number}`}
           className="text-muted-foreground hover:text-foreground"
-          render={<Link to={`/procurement-officer/purchase-orders/${row.original.id}`} />}
+          render={
+            <Link
+              to={`/procurement-officer/purchase-orders/${row.original.id}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+          }
         >
           <Pencil />
         </Button>
@@ -322,7 +330,11 @@ export const PurchaseOrdersTable = ({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                onClick={() => navigate(`/procurement-officer/purchase-orders/${row.original.id}`)}
+                className="cursor-pointer"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

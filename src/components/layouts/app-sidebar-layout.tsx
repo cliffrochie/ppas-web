@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, Settings } from 'lucide-react';
+import { LogOut, Menu, Settings } from 'lucide-react';
 import { cn } from '@/utils';
 import { useAuthStore } from '@/stores/authStore';
+import { useLogout } from '@/features/auth';
 import { NotificationBell } from '@/features/notifications';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import ppasLogo from '@/assets/ppas-logo.svg';
 
 interface NavItem {
@@ -32,6 +39,7 @@ export const AppSidebarLayout = ({
   const { user } = useAuthStore();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
 
   const userName = user
     ? [user.first_name, user.last_name].filter(Boolean).join(' ')
@@ -131,13 +139,27 @@ export const AppSidebarLayout = ({
                 <p className="truncate text-sm font-semibold text-white">{userName}</p>
                 <p className="truncate text-xs text-green-300">{roleName}</p>
               </div>
-              <button
-                type="button"
-                aria-label="Settings"
-                className={cn('shrink-0 text-green-300 hover:text-white', sidebarCollapsed && 'lg:hidden')}
-              >
-                <Settings className="size-4" aria-hidden="true" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="Settings"
+                  className={cn(
+                    'shrink-0 text-green-300 hover:text-white focus-visible:outline-none',
+                    sidebarCollapsed && 'lg:hidden',
+                  )}
+                >
+                  <Settings className="size-4" aria-hidden="true" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    disabled={isLoggingOut}
+                    onClick={() => logout()}
+                    className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                  >
+                    <LogOut aria-hidden="true" />
+                    {isLoggingOut ? 'Logging out…' : 'Logout'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </aside>

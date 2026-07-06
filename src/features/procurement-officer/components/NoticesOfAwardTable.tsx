@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { NoticeOfAward } from '@/types';
 
@@ -23,6 +23,8 @@ const TABLE_COLUMNS = ['NOA #', 'BAC Resolution', 'Awarded Supplier', 'Awarded A
 const SKELETON_ROWS = Array.from({ length: 8 });
 
 export const NoticesOfAwardTable = ({ data, isLoading }: NoticesOfAwardTableProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="hidden sm:block">
@@ -108,10 +110,15 @@ export const NoticesOfAwardTable = ({ data, isLoading }: NoticesOfAwardTableProp
           </TableHeader>
           <TableBody>
             {data.map((noa) => (
-              <TableRow key={noa.id}>
+              <TableRow
+                key={noa.id}
+                onClick={() => navigate(`/procurement-officer/notices-of-award/${noa.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell>
                   <Link
                     to={`/procurement-officer/notices-of-award/${noa.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="font-medium text-green-700 hover:underline"
                   >
                     {noa.noa_number}
@@ -120,6 +127,7 @@ export const NoticesOfAwardTable = ({ data, isLoading }: NoticesOfAwardTableProp
                 <TableCell>
                   <Link
                     to={`/procurement-officer/bac-resolutions/${noa.bac_resolution_id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="text-gray-600 hover:underline"
                   >
                     #{noa.bac_resolution_id}

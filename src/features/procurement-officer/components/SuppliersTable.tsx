@@ -5,7 +5,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -68,12 +68,15 @@ export const SuppliersTable = ({
   sortState,
   onSortChange,
 }: SuppliersTableProps) => {
+  const navigate = useNavigate();
+
   const columns = [
     columnHelper.accessor('name', {
       header: 'Supplier Name',
       cell: (info) => (
         <Link
           to={`/procurement-officer/suppliers/${info.row.original.id}`}
+          onClick={(e) => e.stopPropagation()}
           className="font-medium text-green-700 hover:underline"
         >
           {info.getValue()}
@@ -114,7 +117,12 @@ export const SuppliersTable = ({
           size="icon-sm"
           aria-label={`Edit ${row.original.name}`}
           className="text-muted-foreground hover:text-foreground"
-          render={<Link to={`/procurement-officer/suppliers/${row.original.id}`} />}
+          render={
+            <Link
+              to={`/procurement-officer/suppliers/${row.original.id}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+          }
         >
           <Pencil />
         </Button>
@@ -293,7 +301,11 @@ export const SuppliersTable = ({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                onClick={() => navigate(`/procurement-officer/suppliers/${row.original.id}`)}
+                className="cursor-pointer"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

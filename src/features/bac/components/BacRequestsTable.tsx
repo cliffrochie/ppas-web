@@ -5,7 +5,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -106,6 +106,8 @@ export const BacRequestsTable = ({
   sortState,
   onSortChange,
 }: BacRequestsTableProps) => {
+  const navigate = useNavigate();
+
   const columns = [
     columnHelper.accessor('rf_number', {
       header: 'RF #',
@@ -115,6 +117,7 @@ export const BacRequestsTable = ({
         return (
           <Link
             to={`/bac/requests/${requestId}`}
+            onClick={(e) => e.stopPropagation()}
             className="font-medium text-green-700 hover:underline"
           >
             {rfNumber ?? `#${requestId}`}
@@ -163,6 +166,7 @@ export const BacRequestsTable = ({
           variant="ghost"
           size="icon-sm"
           aria-label="Edit request"
+          onClick={(e) => e.stopPropagation()}
           className="text-muted-foreground hover:text-foreground"
         >
           <Pencil />
@@ -352,7 +356,11 @@ export const BacRequestsTable = ({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                onClick={() => navigate(`/bac/requests/${row.original.id}`)}
+                className="cursor-pointer"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import { ProtectedRoute } from '@/lib/auth';
+import { ProtectedRoute, RoleProtectedRoute } from '@/lib/auth';
 
 const LandingPage = lazy(() => import('./routes/landing'));
 const LoginPage = lazy(() => import('./routes/auth/login'));
@@ -66,6 +66,7 @@ const ProcurementNoticeOfAwardDetailPage = lazy(
 const ProcurementAuditLogsPage = lazy(() => import('./routes/procurement-officer/audit-logs'));
 const ProcurementLoginLogsPage = lazy(() => import('./routes/procurement-officer/login-logs'));
 const NotFoundPage = lazy(() => import('./routes/not-found'));
+const ForbiddenPage = lazy(() => import('./routes/forbidden'));
 
 const PageLoader = () => (
   <div className="flex h-screen items-center justify-center">
@@ -100,119 +101,149 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        element: withSuspense(<RequesterRootLayout />),
+        element: <RoleProtectedRoute allowedRoles={['requester']} />,
         children: [
-          { path: '/requests', element: withSuspense(<RequestsPage />) },
-          { path: '/requests/new', element: withSuspense(<RequestsCreatePage />) },
-          { path: '/requests/:id/edit', element: withSuspense(<RequestEditPage />) },
-          { path: '/requests/:id', element: withSuspense(<RequestDetailPage />) },
-        ],
-      },
-      {
-        element: withSuspense(<BacRootLayout />),
-        children: [
-          { path: '/bac/dashboard', element: withSuspense(<BacDashboardPage />) },
-          { path: '/bac/requests', element: withSuspense(<BacRequestsPage />) },
-          { path: '/bac/requests/:id', element: withSuspense(<BacRequestDetailPage />) },
-        ],
-      },
-      {
-        element: withSuspense(<BudgetOfficerRootLayout />),
-        children: [
-          { path: '/budget-officer/dashboard', element: withSuspense(<BudgetOfficerDashboardPage />) },
-          { path: '/budget-officer/requests', element: withSuspense(<BudgetOfficerRequestsPage />) },
           {
-            path: '/budget-officer/requests/:id',
-            element: withSuspense(<BudgetOfficerRequestDetailPage />),
-          },
-          {
-            path: '/budget-officer/audit-logs',
-            element: withSuspense(<BudgetOfficerAuditLogsPage />),
+            element: withSuspense(<RequesterRootLayout />),
+            children: [
+              { path: '/requests', element: withSuspense(<RequestsPage />) },
+              { path: '/requests/new', element: withSuspense(<RequestsCreatePage />) },
+              { path: '/requests/:id/edit', element: withSuspense(<RequestEditPage />) },
+              { path: '/requests/:id', element: withSuspense(<RequestDetailPage />) },
+            ],
           },
         ],
       },
       {
-        element: withSuspense(<ProcurementOfficerRootLayout />),
+        element: <RoleProtectedRoute allowedRoles={['bac_secretariat']} />,
         children: [
           {
-            path: '/procurement-officer/dashboard',
-            element: withSuspense(<ProcurementDashboardPage />),
+            element: withSuspense(<BacRootLayout />),
+            children: [
+              { path: '/bac/dashboard', element: withSuspense(<BacDashboardPage />) },
+              { path: '/bac/requests', element: withSuspense(<BacRequestsPage />) },
+              { path: '/bac/requests/:id', element: withSuspense(<BacRequestDetailPage />) },
+            ],
           },
+        ],
+      },
+      {
+        element: <RoleProtectedRoute allowedRoles={['budget_officer']} />,
+        children: [
           {
-            path: '/procurement-officer/requests',
-            element: withSuspense(<ProcurementRequestsPage />),
+            element: withSuspense(<BudgetOfficerRootLayout />),
+            children: [
+              {
+                path: '/budget-officer/dashboard',
+                element: withSuspense(<BudgetOfficerDashboardPage />),
+              },
+              {
+                path: '/budget-officer/requests',
+                element: withSuspense(<BudgetOfficerRequestsPage />),
+              },
+              {
+                path: '/budget-officer/requests/:id',
+                element: withSuspense(<BudgetOfficerRequestDetailPage />),
+              },
+              {
+                path: '/budget-officer/audit-logs',
+                element: withSuspense(<BudgetOfficerAuditLogsPage />),
+              },
+            ],
           },
+        ],
+      },
+      {
+        element: <RoleProtectedRoute allowedRoles={['procurement_officer']} />,
+        children: [
           {
-            path: '/procurement-officer/requests/:id',
-            element: withSuspense(<ProcurementRequestDetailPage />),
-          },
-          {
-            path: '/procurement-officer/purchase-orders',
-            element: withSuspense(<ProcurementPurchaseOrdersPage />),
-          },
-          {
-            path: '/procurement-officer/purchase-orders/:id',
-            element: withSuspense(<ProcurementPurchaseOrderDetailPage />),
-          },
-          {
-            path: '/procurement-officer/suppliers',
-            element: withSuspense(<ProcurementSuppliersPage />),
-          },
-          {
-            path: '/procurement-officer/suppliers/create',
-            element: withSuspense(<ProcurementSupplierCreatePage />),
-          },
-          {
-            path: '/procurement-officer/suppliers/:id/edit',
-            element: withSuspense(<ProcurementSupplierEditPage />),
-          },
-          {
-            path: '/procurement-officer/suppliers/:id',
-            element: withSuspense(<ProcurementSupplierDetailPage />),
-          },
-          {
-            path: '/procurement-officer/rfqs',
-            element: withSuspense(<ProcurementRfqsPage />),
-          },
-          {
-            path: '/procurement-officer/rfqs/:id',
-            element: withSuspense(<ProcurementRfqDetailPage />),
-          },
-          {
-            path: '/procurement-officer/abstracts',
-            element: withSuspense(<ProcurementAbstractsPage />),
-          },
-          {
-            path: '/procurement-officer/abstracts/:id',
-            element: withSuspense(<ProcurementAbstractDetailPage />),
-          },
-          {
-            path: '/procurement-officer/bac-resolutions',
-            element: withSuspense(<ProcurementBacResolutionsPage />),
-          },
-          {
-            path: '/procurement-officer/bac-resolutions/:id',
-            element: withSuspense(<ProcurementBacResolutionDetailPage />),
-          },
-          {
-            path: '/procurement-officer/notices-of-award',
-            element: withSuspense(<ProcurementNoticesOfAwardPage />),
-          },
-          {
-            path: '/procurement-officer/notices-of-award/:id',
-            element: withSuspense(<ProcurementNoticeOfAwardDetailPage />),
-          },
-          {
-            path: '/procurement-officer/audit-logs',
-            element: withSuspense(<ProcurementAuditLogsPage />),
-          },
-          {
-            path: '/procurement-officer/login-logs',
-            element: withSuspense(<ProcurementLoginLogsPage />),
+            element: withSuspense(<ProcurementOfficerRootLayout />),
+            children: [
+              {
+                path: '/procurement-officer/dashboard',
+                element: withSuspense(<ProcurementDashboardPage />),
+              },
+              {
+                path: '/procurement-officer/requests',
+                element: withSuspense(<ProcurementRequestsPage />),
+              },
+              {
+                path: '/procurement-officer/requests/:id',
+                element: withSuspense(<ProcurementRequestDetailPage />),
+              },
+              {
+                path: '/procurement-officer/purchase-orders',
+                element: withSuspense(<ProcurementPurchaseOrdersPage />),
+              },
+              {
+                path: '/procurement-officer/purchase-orders/:id',
+                element: withSuspense(<ProcurementPurchaseOrderDetailPage />),
+              },
+              {
+                path: '/procurement-officer/suppliers',
+                element: withSuspense(<ProcurementSuppliersPage />),
+              },
+              {
+                path: '/procurement-officer/suppliers/create',
+                element: withSuspense(<ProcurementSupplierCreatePage />),
+              },
+              {
+                path: '/procurement-officer/suppliers/:id/edit',
+                element: withSuspense(<ProcurementSupplierEditPage />),
+              },
+              {
+                path: '/procurement-officer/suppliers/:id',
+                element: withSuspense(<ProcurementSupplierDetailPage />),
+              },
+              {
+                path: '/procurement-officer/rfqs',
+                element: withSuspense(<ProcurementRfqsPage />),
+              },
+              {
+                path: '/procurement-officer/rfqs/:id',
+                element: withSuspense(<ProcurementRfqDetailPage />),
+              },
+              {
+                path: '/procurement-officer/abstracts',
+                element: withSuspense(<ProcurementAbstractsPage />),
+              },
+              {
+                path: '/procurement-officer/abstracts/:id',
+                element: withSuspense(<ProcurementAbstractDetailPage />),
+              },
+              {
+                path: '/procurement-officer/bac-resolutions',
+                element: withSuspense(<ProcurementBacResolutionsPage />),
+              },
+              {
+                path: '/procurement-officer/bac-resolutions/:id',
+                element: withSuspense(<ProcurementBacResolutionDetailPage />),
+              },
+              {
+                path: '/procurement-officer/notices-of-award',
+                element: withSuspense(<ProcurementNoticesOfAwardPage />),
+              },
+              {
+                path: '/procurement-officer/notices-of-award/:id',
+                element: withSuspense(<ProcurementNoticeOfAwardDetailPage />),
+              },
+              {
+                path: '/procurement-officer/audit-logs',
+                element: withSuspense(<ProcurementAuditLogsPage />),
+              },
+              {
+                path: '/procurement-officer/login-logs',
+                element: withSuspense(<ProcurementLoginLogsPage />),
+              },
+            ],
           },
         ],
       },
     ],
+  },
+  {
+    path: '/403',
+    element: withSuspense(<ForbiddenPage />),
   },
   {
     path: '*',

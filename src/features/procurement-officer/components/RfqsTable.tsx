@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/utils';
 import type { Rfq, RfqStatus } from '@/types';
@@ -54,6 +54,8 @@ const TABLE_COLUMNS = ['RFQ #', 'Purchase Request', 'Deadline', 'Prepared By', '
 const SKELETON_ROWS = Array.from({ length: 8 });
 
 export const RfqsTable = ({ data, isLoading }: RfqsTableProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <>
@@ -155,10 +157,15 @@ export const RfqsTable = ({ data, isLoading }: RfqsTableProps) => {
           </TableHeader>
           <TableBody>
             {data.map((rfq) => (
-              <TableRow key={rfq.id}>
+              <TableRow
+                key={rfq.id}
+                onClick={() => navigate(`/procurement-officer/rfqs/${rfq.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell>
                   <Link
                     to={`/procurement-officer/rfqs/${rfq.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="font-medium text-green-700 hover:underline"
                   >
                     {rfq.rfq_number}
@@ -167,6 +174,7 @@ export const RfqsTable = ({ data, isLoading }: RfqsTableProps) => {
                 <TableCell>
                   <Link
                     to={`/procurement-officer/requests/${rfq.purchase_request_id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="text-gray-600 hover:underline"
                   >
                     #{rfq.purchase_request_id}

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { BacResolution } from '@/types';
 
@@ -20,6 +20,8 @@ const TABLE_COLUMNS = ['Resolution #', 'Abstract', 'Prepared By', 'Issued At'];
 const SKELETON_ROWS = Array.from({ length: 8 });
 
 export const BacResolutionsTable = ({ data, isLoading }: BacResolutionsTableProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="hidden sm:block">
@@ -104,10 +106,15 @@ export const BacResolutionsTable = ({ data, isLoading }: BacResolutionsTableProp
           </TableHeader>
           <TableBody>
             {data.map((resolution) => (
-              <TableRow key={resolution.id}>
+              <TableRow
+                key={resolution.id}
+                onClick={() => navigate(`/procurement-officer/bac-resolutions/${resolution.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell>
                   <Link
                     to={`/procurement-officer/bac-resolutions/${resolution.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="font-medium text-green-700 hover:underline"
                   >
                     {resolution.resolution_number}
@@ -116,6 +123,7 @@ export const BacResolutionsTable = ({ data, isLoading }: BacResolutionsTableProp
                 <TableCell>
                   <Link
                     to={`/procurement-officer/abstracts/${resolution.abstract_of_quotation_id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="text-gray-600 hover:underline"
                   >
                     #{resolution.abstract_of_quotation_id}

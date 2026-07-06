@@ -37,7 +37,23 @@ export const useLogin = () => {
     mutationFn: authApi.login,
     onSuccess: (response) => {
       setAuth(response.data.token, response.data.user);
-      navigate('/requests');
+
+      const roleName = response.data.user.role?.name;
+      switch (roleName) {
+        case 'procurement_officer':
+          navigate('/procurement-officer/dashboard');
+          break;
+        case 'budget_officer':
+          navigate('/budget-officer/dashboard');
+          break;
+        case 'bac_secretariat':
+          navigate('/bac/dashboard');
+          break;
+        case 'requester':
+        default:
+          navigate('/requests');
+          break;
+      }
     },
   });
 };

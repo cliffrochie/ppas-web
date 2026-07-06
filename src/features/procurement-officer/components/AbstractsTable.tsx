@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/utils';
 import type { AbstractOfQuotation, AbstractStatus } from '@/types';
@@ -48,6 +48,8 @@ const TABLE_COLUMNS = ['RFQ', 'Recommended Supplier', 'Recommended Amount', 'Sta
 const SKELETON_ROWS = Array.from({ length: 8 });
 
 export const AbstractsTable = ({ data, isLoading }: AbstractsTableProps) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="hidden sm:block">
@@ -133,10 +135,15 @@ export const AbstractsTable = ({ data, isLoading }: AbstractsTableProps) => {
           </TableHeader>
           <TableBody>
             {data.map((abstract) => (
-              <TableRow key={abstract.id}>
+              <TableRow
+                key={abstract.id}
+                onClick={() => navigate(`/procurement-officer/abstracts/${abstract.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell>
                   <Link
                     to={`/procurement-officer/abstracts/${abstract.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="font-medium text-green-700 hover:underline"
                   >
                     RFQ #{abstract.rfq_id}
