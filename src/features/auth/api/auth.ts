@@ -19,7 +19,7 @@ export const authApi = {
   },
 
   logout: async (): Promise<ApiResponse<null>> => {
-    const { data } = await api.post('/auth/logout');
+    const { data } = await api.delete('/auth/logout');
     return data;
   },
 

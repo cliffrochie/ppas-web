@@ -1,4 +1,4 @@
-import { BacRequestList } from '@/features/bac/components/BacRequestList';
+import { BacRequestList } from '@/features/bac';
 
 const ProcurementRequestsPage = () => (
   <div className="min-h-full p-4 sm:p-6">
