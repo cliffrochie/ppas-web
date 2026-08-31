@@ -1,4 +1,4 @@
-import { BacDashboard } from '@/features/bac/components/BacDashboard';
+import { BacDashboard } from '@/features/bac';
 
 const DashboardPage = () => <BacDashboard />;
 

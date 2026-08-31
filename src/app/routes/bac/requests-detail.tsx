@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useRequest } from '@/features/requests';
-import { BacRequestDetail } from '@/features/bac/components/BacRequestDetail';
+import { BacRequestDetail } from '@/features/bac';
 
 const BacRequestDetailPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -203,7 +203,6 @@ const EndUserCombobox = ({ value, displayName, onChange, hasError }: EndUserComb
           {/* Search input — debounced, triggers a server-side filtered refetch */}
           <div className="border-b border-border p-2">
             <Input
-              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
               placeholder="Search users..."
               value={query}
@@ -477,8 +476,10 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
     request?.requester ? getFullName(request.requester) : '',
   );
 
-  // Tracks which button triggered the submit so onSubmit can distinguish draft vs submit
-  const intentRef = useRef<'submit' | 'draft'>('submit');
+  // Tracks which button triggered the in-flight submit (draft vs submit) so the
+  // right button can show its "Saving..." label. The intent is passed explicitly
+  // into onSubmit rather than read from here, so it stays render-safe.
+  const [pendingIntent, setPendingIntent] = useState<'submit' | 'draft'>('submit');
 
   const {
     register,
@@ -578,7 +579,10 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
     total_cost: item.unit_cost * item.quantity,
   });
 
-  const onSubmit = async (values: CreateRequestFormValues) => {
+  const onSubmit = async (
+    values: CreateRequestFormValues,
+    intent: 'submit' | 'draft',
+  ) => {
     if (request) {
       // Edit mode — PATCH the top-level fields, then reconcile line items.
       // Items have no partial-update UI (no per-row "existing id" tracking), so
@@ -627,7 +631,7 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
     }
 
     // Create mode
-    const isDraft = intentRef.current === 'draft';
+    const isDraft = intent === 'draft';
 
     if (!user?.office_id) {
       setError('root', {
@@ -683,10 +687,23 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
     }
   };
 
+  // Runs RHF validation, then submits with the intent of the button that was
+  // pressed. Also drives the per-button "Saving..." label via `pendingIntent`.
+  const runSubmit = (intent: 'submit' | 'draft') => {
+    setPendingIntent(intent);
+    return handleSubmit((values) => onSubmit(values, intent))();
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void runSubmit('submit');
+      }}
+      noValidate
+    >
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_288px]">
         {/* ── Left column: Sections 1 → 3 ─────────────────────────────── */}
         <div className="space-y-4">
@@ -989,11 +1006,9 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
             <div className="mt-6 space-y-2">
               {/* Submit / Update Request */}
               <Button
-                type="submit"
+                type="button"
                 disabled={isSubmitting}
-                onClick={() => {
-                  intentRef.current = 'submit';
-                }}
+                onClick={() => void runSubmit('submit')}
                 className="h-10 w-full bg-green-700 text-white hover:bg-green-800 focus-visible:ring-green-700/50"
               >
                 {isSubmitting ? 'Saving...' : request ? 'Update Request' : 'Submit Request'}
@@ -1002,15 +1017,13 @@ export const CreateRequestForm = ({ request }: RequestFormProps = {}) => {
               {/* Save Draft — create mode only */}
               {!request && (
                 <Button
-                  type="submit"
+                  type="button"
                   variant="outline"
                   disabled={isSubmitting}
-                  onClick={() => {
-                    intentRef.current = 'draft';
-                  }}
+                  onClick={() => void runSubmit('draft')}
                   className="h-10 w-full"
                 >
-                  {isSubmitting && intentRef.current === 'draft' ? 'Saving...' : 'Save Draft'}
+                  {isSubmitting && pendingIntent === 'draft' ? 'Saving...' : 'Save Draft'}
                 </Button>
               )}
             </div>
