@@ -1,15 +1,15 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X, Upload } from 'lucide-react';
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/utils';
-import type { Supplier } from '@/types';
-import { useCreateSupplier, useUpdateSupplier, useUploadSupplierDocument } from '../api/suppliers';
 import { useCategories } from '@/features/requests';
+import type { Supplier } from '@/types';
+import { cn } from '@/utils';
+import { useCreateSupplier, useUpdateSupplier, useUploadSupplierDocument } from '../api/suppliers';
 import {
   supplierSchema as schema,
   type SupplierFormValues as FormValues,

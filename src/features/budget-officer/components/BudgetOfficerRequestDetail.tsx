@@ -1,12 +1,11 @@
-import { useState, type ReactNode } from 'react';
 import { Check, File, FileText, Image } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { RichTextContent } from '@/components/ui/rich-text-content';
-import { cn } from '@/utils';
+import { Textarea } from '@/components/ui/textarea';
+import { RequestStatusBadge, useRequestStatusHistories } from '@/features/requests';
 import type { PurchaseRequest, PurchaseRequestStatus, PrStatusHistory, User } from '@/types';
-import { RequestStatusBadge } from '@/features/requests';
-import { useRequestStatusHistories } from '@/features/requests/api/requests';
+import { cn } from '@/utils';
 import { useUpdateRequestStatus } from '../api/requests';
 
 // ─── Formatters ────────────────────────────────────────────────────────────────

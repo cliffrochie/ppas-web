@@ -1,6 +1,6 @@
+import { BarChart3, Clock, CreditCard, Link2, Menu, ShieldCheck, Users, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, Clock, CreditCard, Link2, Menu, ShieldCheck, Users, X } from 'lucide-react';
 
 // Social icons not available in lucide-react v1.21 — using inline SVGs
 const FacebookIcon = ({ className }: { className?: string }) => (

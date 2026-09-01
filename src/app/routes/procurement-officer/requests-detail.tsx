@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useRequest } from '@/features/requests';
 import { ProcurementRequestDetail } from '@/features/procurement-officer/components/ProcurementRequestDetail';
+import { useRequest } from '@/features/requests';
 
 const ProcurementRequestDetailPage = () => {
   const { id } = useParams<{ id: string }>();

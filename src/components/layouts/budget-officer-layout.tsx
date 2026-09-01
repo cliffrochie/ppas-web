@@ -1,7 +1,7 @@
-import { Outlet } from 'react-router-dom';
 import { Users, FileText, LayoutDashboard, ShoppingCart, ScrollText } from 'lucide-react';
-import { AppSidebarLayout } from './app-sidebar-layout';
+import { Outlet } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { AppSidebarLayout } from './app-sidebar-layout';
 
 const BUDGET_OFFICER_NAV = [
   { to: '/budget-officer/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

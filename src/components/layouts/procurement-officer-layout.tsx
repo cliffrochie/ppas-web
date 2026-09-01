@@ -1,4 +1,3 @@
-import { Outlet } from 'react-router-dom';
 import {
   Users,
   FileText,
@@ -11,8 +10,9 @@ import {
   ScrollText,
   History,
 } from 'lucide-react';
-import { AppSidebarLayout } from './app-sidebar-layout';
+import { Outlet } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { AppSidebarLayout } from './app-sidebar-layout';
 
 const NAV = [
   { to: '/procurement-officer/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

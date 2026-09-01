@@ -1,9 +1,17 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
-import { Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -13,20 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { useRequest, useUsersInfinite } from '@/features/requests';
 import { useDebounce } from '@/hooks';
 import { useAuthorization } from '@/lib/authorization';
-import { useRequest, useUsersInfinite } from '@/features/requests';
-import { cn } from '@/utils';
 import type { Rfq, RfqItem, RfqStatus, CanvassResponse, PurchaseRequestItem } from '@/types';
-import { RfqStatusBadge } from './RfqsTable';
+import { cn } from '@/utils';
 import {
   useUpdateRfq,
   useRfqItems,
@@ -46,6 +45,7 @@ import {
   rfqItemSchema,
   type RfqItemValues,
 } from '../schemas/rfqSchema';
+import { RfqStatusBadge } from './RfqsTable';
 import { SearchCombobox } from './SearchCombobox';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────

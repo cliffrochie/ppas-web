@@ -1,5 +1,5 @@
-import { cn } from '@/utils';
 import type { PurchaseRequestStatus } from '@/types';
+import { cn } from '@/utils';
 import type { RequestStatus } from '../types';
 
 interface RequestStatusBadgeProps {

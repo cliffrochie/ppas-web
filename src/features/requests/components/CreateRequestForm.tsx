@@ -1,5 +1,7 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
+import { Plus, Trash2, Upload, X, Paperclip, ChevronsUpDown, Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   useForm,
   useFieldArray,
@@ -9,9 +11,7 @@ import {
   type FieldErrors,
   type Control,
 } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2, Upload, X, Paperclip, ChevronsUpDown, Check } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,11 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { isApiValidationError } from '@/types';
 import type { PurchaseRequest, User } from '@/types';
-import { useUsersInfinite } from '../api/users';
+import { cn } from '@/utils';
 import { useCategories } from '../api/categories';
 import {
   useCreateRequest,
@@ -35,6 +34,7 @@ import {
   useCreatePurchaseRequestItem,
   requestsApi,
 } from '../api/requests';
+import { useUsersInfinite } from '../api/users';
 import {
   createRequestSchema,
   type CreateRequestFormValues,

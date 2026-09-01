@@ -1,8 +1,8 @@
 import { Globe, MapPin, Phone, Building2, FileText, Download, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/utils';
 import type { Supplier } from '@/types';
+import { cn } from '@/utils';
 
 // ─── Rate formatting ──────────────────────────────────────────────────────────
 // `on_time_delivery_rate` / `defect_rate` are decimal(5,2) columns — Laravel

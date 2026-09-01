@@ -1,7 +1,7 @@
-import { Outlet } from 'react-router-dom';
 import { FileText, LayoutDashboard, ShoppingCart } from 'lucide-react';
-import { AppSidebarLayout } from '@/components/layouts/app-sidebar-layout';
+import { Outlet } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { AppSidebarLayout } from '@/components/layouts/app-sidebar-layout';
 
 const BAC_NAV = [
   { to: '/bac/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

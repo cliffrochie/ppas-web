@@ -8,8 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/utils';
 import type { Notification } from '@/types';
+import { cn } from '@/utils';
 import { useMarkNotificationRead, useNotifications } from '../api/notifications';
 
 interface NotificationBellProps {
