@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { FileText, LayoutDashboard, ShoppingCart } from 'lucide-react';
 import { AppSidebarLayout } from '@/components/layouts/app-sidebar-layout';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 
 const BAC_NAV = [
   { to: '/bac/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -15,7 +16,9 @@ const BacRootLayout = () => (
     roleName="BAC Secretariat"
     requestsPathPrefix="/bac/requests"
   >
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
   </AppSidebarLayout>
 );
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,19 +17,11 @@ import { useDebounce } from '@/hooks';
 import { useUsersInfinite } from '@/features/requests';
 import { useRfqs } from '../api/rfqs';
 import { useCreateAbstractOfQuotation } from '../api/procurement';
+import {
+  abstractSchema as schema,
+  type AbstractFormValues as FormValues,
+} from '../schemas/abstractSchema';
 import { SearchCombobox } from './SearchCombobox';
-
-const schema = z.object({
-  rfq_id: z.number({ message: 'Please select an RFQ' }).int().positive('Please select an RFQ'),
-  prepared_by_id: z
-    .number({ message: 'Please select a preparer' })
-    .int()
-    .positive('Please select a preparer'),
-  recommended_supplier: z.string().optional(),
-  recommended_amount: z.number().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 const getFullName = (user: { first_name: string; last_name: string }) =>
   [user.first_name, user.last_name].filter(Boolean).join(' ');

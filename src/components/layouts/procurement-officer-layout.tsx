@@ -12,6 +12,7 @@ import {
   History,
 } from 'lucide-react';
 import { AppSidebarLayout } from './app-sidebar-layout';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 
 const NAV = [
   { to: '/procurement-officer/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -33,7 +34,9 @@ const ProcurementOfficerLayout = () => (
     roleName="PPU Personnel"
     requestsPathPrefix="/procurement-officer/requests"
   >
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
   </AppSidebarLayout>
 );
 

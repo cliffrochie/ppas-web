@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,10 @@ import { Label } from '@/components/ui/label';
 import { useAuthorization } from '@/lib/authorization';
 import type { NoticeOfAward } from '@/types';
 import { useUpdateNoticeOfAward } from '../api/procurement';
+import {
+  noticeOfAwardEditSchema as editSchema,
+  type NoticeOfAwardEditValues as EditValues,
+} from '../schemas/noticeOfAwardSchema';
 
 const formatCurrency = (amount: string) =>
   Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,15 +34,6 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
     <div className="p-4 sm:p-6">{children}</div>
   </div>
 );
-
-const editSchema = z.object({
-  noa_number: z.string().min(1, 'Required'),
-  awarded_supplier: z.string().min(1, 'Required'),
-  awarded_amount: z.number({ message: 'Enter a valid amount' }).positive('Must be greater than 0'),
-  issued_at: z.string().optional(),
-});
-
-type EditValues = z.infer<typeof editSchema>;
 
 const NoticeOfAwardEditForm = ({ noa }: { noa: NoticeOfAward }) => {
   const [file, setFile] = useState<File | null>(null);

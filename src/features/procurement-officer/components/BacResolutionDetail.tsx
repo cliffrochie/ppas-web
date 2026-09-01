@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,10 @@ import { useAuthorization } from '@/lib/authorization';
 import { useUsersInfinite } from '@/features/requests';
 import type { BacResolution } from '@/types';
 import { useUpdateBacResolution } from '../api/procurement';
+import {
+  bacResolutionEditSchema as editSchema,
+  type BacResolutionEditValues as EditValues,
+} from '../schemas/bacResolutionSchema';
 import { SearchCombobox } from './SearchCombobox';
 
 const formatDate = (isoDate: string | null) => {
@@ -34,14 +37,6 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
     <div className="p-4 sm:p-6">{children}</div>
   </div>
 );
-
-const editSchema = z.object({
-  resolution_number: z.string().min(1, 'Required'),
-  prepared_by_id: z.number({ message: 'Please select a preparer' }).int().positive(),
-  issued_at: z.string().optional(),
-});
-
-type EditValues = z.infer<typeof editSchema>;
 
 const BacResolutionEditForm = ({ resolution }: { resolution: BacResolution }) => {
   const [file, setFile] = useState<File | null>(null);

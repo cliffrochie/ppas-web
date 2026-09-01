@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,22 +16,11 @@ import {
 import { useDebounce } from '@/hooks';
 import { useUsersInfinite } from '@/features/requests';
 import { useAbstractsOfQuotation, useCreateBacResolution } from '../api/procurement';
+import {
+  bacResolutionSchema as schema,
+  type BacResolutionFormValues as FormValues,
+} from '../schemas/bacResolutionSchema';
 import { SearchCombobox } from './SearchCombobox';
-
-const schema = z.object({
-  resolution_number: z.string().min(1, 'Required'),
-  abstract_of_quotation_id: z
-    .number({ message: 'Please select an abstract of quotation' })
-    .int()
-    .positive('Please select an abstract of quotation'),
-  prepared_by_id: z
-    .number({ message: 'Please select a preparer' })
-    .int()
-    .positive('Please select a preparer'),
-  issued_at: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 const getFullName = (user: { first_name: string; last_name: string }) =>
   [user.first_name, user.last_name].filter(Boolean).join(' ');

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,20 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { useDebounce } from '@/hooks';
 import { useBacResolutions, useCreateNoticeOfAward } from '../api/procurement';
+import {
+  noticeOfAwardSchema as schema,
+  type NoticeOfAwardFormValues as FormValues,
+} from '../schemas/noticeOfAwardSchema';
 import { SearchCombobox } from './SearchCombobox';
-
-const schema = z.object({
-  noa_number: z.string().min(1, 'Required'),
-  bac_resolution_id: z
-    .number({ message: 'Please select a BAC resolution' })
-    .int()
-    .positive('Please select a BAC resolution'),
-  awarded_supplier: z.string().min(1, 'Required'),
-  awarded_amount: z.number({ message: 'Enter a valid amount' }).positive('Must be greater than 0'),
-  issued_at: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 export const NoticeOfAwardCreateForm = () => {
   const [open, setOpen] = useState(false);
