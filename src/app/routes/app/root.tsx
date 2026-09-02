@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { DashboardLayout } from '@/components/layouts';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { DashboardLayout } from '@/components/layouts';
 
 const AppRootLayout = () => {
   return (

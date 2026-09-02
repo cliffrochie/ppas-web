@@ -1,10 +1,17 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link } from 'react-router-dom';
-import { Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -14,20 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { useRequest, useUsersInfinite } from '@/features/requests';
 import { useDebounce } from '@/hooks';
 import { useAuthorization } from '@/lib/authorization';
-import { useRequest, useUsersInfinite } from '@/features/requests';
-import { cn } from '@/utils';
 import type { Rfq, RfqItem, RfqStatus, CanvassResponse, PurchaseRequestItem } from '@/types';
-import { RfqStatusBadge } from './RfqsTable';
+import { cn } from '@/utils';
 import {
   useUpdateRfq,
   useRfqItems,
@@ -39,6 +37,15 @@ import {
   useUpdateCanvassResponse,
   useDeleteCanvassResponse,
 } from '../api/rfqs';
+import {
+  rfqEditSchema,
+  type RfqEditValues,
+  canvassSchema,
+  type CanvassValues,
+  rfqItemSchema,
+  type RfqItemValues,
+} from '../schemas/rfqSchema';
+import { RfqStatusBadge } from './RfqsTable';
 import { SearchCombobox } from './SearchCombobox';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -76,14 +83,6 @@ const SectionCard = ({
 );
 
 // ─── RFQ edit form (prepared_by / deadline / status / file) ────────────────────
-
-const rfqEditSchema = z.object({
-  prepared_by_id: z.number({ message: 'Please select a preparer' }).int().positive(),
-  deadline: z.string().optional(),
-  status: z.enum(['draft', 'for_signature', 'signed', 'canvassing', 'closed']),
-});
-
-type RfqEditValues = z.infer<typeof rfqEditSchema>;
 
 const RFQ_STATUS_OPTIONS: RfqStatus[] = ['draft', 'for_signature', 'signed', 'canvassing', 'closed'];
 
@@ -224,15 +223,6 @@ const RfqEditForm = ({ rfq }: { rfq: Rfq }) => {
 };
 
 // ─── Canvass response dialog form ──────────────────────────────────────────────
-
-const canvassSchema = z.object({
-  supplier_name: z.string().min(1, 'Required'),
-  unit_price: z.number({ message: 'Enter a valid price' }).positive('Must be greater than 0'),
-  total_price: z.number({ message: 'Enter a valid amount' }).positive('Must be greater than 0'),
-  notes: z.string().optional(),
-});
-
-type CanvassValues = z.infer<typeof canvassSchema>;
 
 const CanvassFormDialog = ({
   rfqId,
@@ -457,15 +447,6 @@ const CanvassSection = ({
 };
 
 // ─── RFQ item dialog form ───────────────────────────────────────────────────────
-
-const rfqItemSchema = z.object({
-  pr_item_id: z.number({ message: 'Please select a PR line item' }).int().positive(),
-  item_description: z.string().min(1, 'Required'),
-  unit_of_measure: z.string().min(1, 'Required'),
-  quantity: z.number({ message: 'Enter a valid quantity' }).positive('Must be greater than 0'),
-});
-
-type RfqItemValues = z.infer<typeof rfqItemSchema>;
 
 const RfqItemFormDialog = ({
   rfqId,

@@ -1,38 +1,19 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X, Upload } from 'lucide-react';
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/utils';
-import type { Supplier } from '@/types';
-import { useCreateSupplier, useUpdateSupplier, useUploadSupplierDocument } from '../api/suppliers';
 import { useCategories } from '@/features/requests';
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const schema = z.object({
-  name: z.string().min(1, 'Required'),
-  tin_number: z.string().optional(),
-  category_id: z
-    .number({ message: 'Please select a category' })
-    .int()
-    .positive('Please select a category'),
-  website: z.string().url('Invalid URL').optional().or(z.literal('')),
-  is_active: z.boolean(),
-  contact_person: z.string().optional(),
-  email: z.string().email('Invalid email'),
-  phone: z.string().optional(),
-  address_street: z.string().optional(),
-  address_city: z.string().optional(),
-  address_province: z.string().optional(),
-  address_zip: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
+import type { Supplier } from '@/types';
+import { cn } from '@/utils';
+import { useCreateSupplier, useUpdateSupplier, useUploadSupplierDocument } from '../api/suppliers';
+import {
+  supplierSchema as schema,
+  type SupplierFormValues as FormValues,
+} from '../schemas/supplierSchema';
 
 // ─── Field wrapper ────────────────────────────────────────────────────────────
 

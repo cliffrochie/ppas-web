@@ -1,18 +1,18 @@
+import { LogOut, Menu, Settings } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LogOut, Menu, Settings } from 'lucide-react';
-import { cn } from '@/utils';
-import { useAuthStore } from '@/stores/authStore';
-import { useLogout } from '@/features/auth';
-import { NotificationBell } from '@/features/notifications';
+import ppasLogo from '@/assets/ppas-logo.svg';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import ppasLogo from '@/assets/ppas-logo.svg';
+import { useLogout } from '@/features/auth';
+import { NotificationBell } from '@/features/notifications';
+import { useAuthStore } from '@/stores/authStore';
+import { cn } from '@/utils';
 
 interface NavItem {
   to: string;

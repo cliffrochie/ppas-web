@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,8 +12,8 @@ import {
 import { RequestsPagination } from '@/features/requests';
 import { LoginStatus } from '@/types';
 import { useLoginLogs } from '../api/login-logs';
-import { LoginLogsTable } from './LoginLogsTable';
 import type { LoginLogFilters } from '../types';
+import { LoginLogsTable } from './LoginLogsTable';
 
 const DEFAULT_PER_PAGE = 10;
 const ALL_STATUSES = '__all__';

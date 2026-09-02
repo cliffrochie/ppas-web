@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -12,11 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/utils';
 import { isApiValidationError } from '@/types';
+import { cn } from '@/utils';
+import { useRegister } from '../api/auth';
 import { registerSchema, MONTHS, type RegisterFormData } from '../schemas/authSchema';
 import type { RegisterPayload } from '../types';
-import { useRegister } from '../api/auth';
 
 export const RegisterForm = () => {
   const registerMutation = useRegister();

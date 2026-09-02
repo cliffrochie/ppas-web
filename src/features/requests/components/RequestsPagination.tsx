@@ -1,7 +1,7 @@
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/utils';
 import type { ApiMeta } from '@/types';
+import { cn } from '@/utils';
 
 interface RequestsPaginationProps {
   meta: ApiMeta;

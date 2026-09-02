@@ -1,11 +1,11 @@
-import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { RequestsPagination } from '@/features/requests';
 import { useAuthorization } from '@/lib/authorization';
 import { useAbstractsOfQuotation } from '../api/procurement';
-import { AbstractsTable } from './AbstractsTable';
 import { AbstractCreateForm } from './AbstractCreateForm';
+import { AbstractsTable } from './AbstractsTable';
 
 export const AbstractsList = () => {
   const { hasRole } = useAuthorization();

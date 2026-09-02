@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { Building2, Check, Globe, MapPin, Phone, Printer, Upload } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/utils';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@/types';
-import { PoStatusBadge } from './PurchaseOrdersTable';
+import { cn } from '@/utils';
 import { useUpdatePoStatus } from '../api/purchase-orders';
+import { PoStatusBadge } from './PurchaseOrdersTable';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 

@@ -1,11 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -14,24 +11,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useDebounce } from '@/hooks';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useRequests, useUsersInfinite } from '@/features/requests';
+import { useDebounce } from '@/hooks';
 import { useCreateRfq } from '../api/rfqs';
+import { rfqSchema as schema, type RfqFormValues as FormValues } from '../schemas/rfqSchema';
 import { SearchCombobox } from './SearchCombobox';
-
-const schema = z.object({
-  purchase_request_id: z
-    .number({ message: 'Please select a purchase request' })
-    .int()
-    .positive('Please select a purchase request'),
-  prepared_by_id: z
-    .number({ message: 'Please select a preparer' })
-    .int()
-    .positive('Please select a preparer'),
-  deadline: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 const getFullName = (user: { first_name: string; last_name: string }) =>
   [user.first_name, user.last_name].filter(Boolean).join(' ');

@@ -1,5 +1,6 @@
-import { Outlet } from 'react-router-dom';
 import { FileText, LayoutDashboard, ShoppingCart } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { AppSidebarLayout } from '@/components/layouts/app-sidebar-layout';
 
 const BAC_NAV = [
@@ -15,7 +16,9 @@ const BacRootLayout = () => (
     roleName="BAC Secretariat"
     requestsPathPrefix="/bac/requests"
   >
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
   </AppSidebarLayout>
 );
 

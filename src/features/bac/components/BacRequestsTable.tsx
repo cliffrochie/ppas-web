@@ -15,9 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/utils';
 import { RequestStatusBadge } from '@/features/requests';
 import type { Request, RequestSortState } from '@/features/requests';
+import { cn } from '@/utils';
 
 interface BacRequestsTableProps {
   data: Request[];

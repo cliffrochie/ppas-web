@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/utils';
 import type { Supplier } from '@/types';
+import { cn } from '@/utils';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
