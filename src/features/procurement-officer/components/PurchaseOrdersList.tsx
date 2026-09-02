@@ -1,35 +1,54 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { RequestsPagination } from '@/features/requests';
-import { usePurchaseOrders } from '../api/purchase-orders';
+import { useDebounce } from '@/hooks';
+import type { PurchaseOrderStatus } from '@/types';
+import { usePurchaseOrders, type PurchaseOrderFilters } from '../api/purchase-orders';
+import { PO_STATUS_OPTIONS } from './po-status';
 import { PurchaseOrdersTable } from './PurchaseOrdersTable';
 import type { PurchaseOrderSortState } from './PurchaseOrdersTable';
 
 const DEFAULT_PER_PAGE = 10;
+const ALL = '__all__';
 
 export const PurchaseOrdersList = () => {
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<string>(ALL);
   const [page, setPage] = useState(1);
   const [sortState, setSortState] = useState<PurchaseOrderSortState>({
     column: 'created_at',
     direction: 'desc',
   });
 
-  const filters = {
-    search: search || undefined,
+  const debouncedSearch = useDebounce(search, 300);
+
+  const filters: PurchaseOrderFilters = {
+    search: debouncedSearch || undefined,
+    status: status === ALL ? undefined : (status as PurchaseOrderStatus),
     page,
     per_page: DEFAULT_PER_PAGE,
     sort_by: sortState.column,
-    sort_dir: sortState.direction,
+    sort_order: sortState.direction,
   };
 
   const { data: response, isLoading, isError } = usePurchaseOrders(filters);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
+  // Any search/filter change returns to the first page.
+  const handleFilterChange =
+    <T,>(setter: (value: T) => void) =>
+    (value: T) => {
+      setter(value);
+      setPage(1);
+    };
 
   const handleSortChange = (column: string) => {
     setSortState((prev) => ({
@@ -56,8 +75,8 @@ export const PurchaseOrdersList = () => {
           <h2 className="text-base font-semibold text-gray-800">Purchase Orders</h2>
         </div>
 
-        <div className="px-5 py-4">
-          <div className="relative max-w-sm">
+        <div className="flex flex-wrap items-end gap-3 px-5 py-4">
+          <div className="relative w-full max-w-sm">
             <Search
               className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -66,10 +85,30 @@ export const PurchaseOrdersList = () => {
               type="search"
               placeholder="Search..."
               value={search}
-              onChange={handleSearchChange}
+              onChange={(e) => handleFilterChange(setSearch)(e.target.value)}
               className="pl-8"
               aria-label="Search purchase orders"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="po_status_filter">Status</Label>
+            <Select
+              value={status}
+              onValueChange={(val) => val && handleFilterChange(setStatus)(val)}
+            >
+              <SelectTrigger id="po_status_filter" className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All Statuses</SelectItem>
+                {PO_STATUS_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

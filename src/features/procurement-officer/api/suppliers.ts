@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import type {
   ApiResponse,
+  Category,
   PaginatedResponse,
   Supplier,
   SupplierDocument,
@@ -10,12 +11,15 @@ import type {
   CreateSupplierDocumentPayload,
 } from '@/types';
 
-interface SupplierFilters {
+export interface SupplierFilters {
   search?: string;
+  /** Sent as 1/0 — the API's `boolean` validation rule rejects "true"/"false". */
+  is_active?: 0 | 1;
+  category_id?: Category['id'];
   page?: number;
   per_page?: number;
   sort_by?: string;
-  sort_dir?: 'asc' | 'desc';
+  sort_order?: 'asc' | 'desc';
 }
 
 const suppliersApi = {

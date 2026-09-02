@@ -3,35 +3,61 @@ import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RequestsPagination } from '@/features/requests';
-import { useSuppliers } from '../api/suppliers';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RequestsPagination, useCategories } from '@/features/requests';
+import { useDebounce } from '@/hooks';
+import { useSuppliers, type SupplierFilters } from '../api/suppliers';
 import { SuppliersTable } from './SuppliersTable';
 import type { SupplierSortState } from './SuppliersTable';
 
 const DEFAULT_PER_PAGE = 10;
+const ALL = '__all__';
+
+const ACTIVE_FROM_VALUE: Record<string, 0 | 1 | undefined> = {
+  [ALL]: undefined,
+  active: 1,
+  inactive: 0,
+};
 
 export const SuppliersList = () => {
   const [search, setSearch] = useState('');
+  const [active, setActive] = useState<string>(ALL);
+  const [category, setCategory] = useState<string>(ALL);
   const [page, setPage] = useState(1);
   const [sortState, setSortState] = useState<SupplierSortState>({
     column: 'name',
     direction: 'asc',
   });
 
-  const filters = {
-    search: search || undefined,
+  const debouncedSearch = useDebounce(search, 300);
+  const { data: categories } = useCategories();
+
+  const filters: SupplierFilters = {
+    search: debouncedSearch || undefined,
+    is_active: ACTIVE_FROM_VALUE[active],
+    category_id: category === ALL ? undefined : Number(category),
     page,
     per_page: DEFAULT_PER_PAGE,
     sort_by: sortState.column,
-    sort_dir: sortState.direction,
+    sort_order: sortState.direction,
   };
 
   const { data: response, isLoading, isError } = useSuppliers(filters);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
+  // Any search/filter change returns to the first page.
+  const handleFilterChange =
+    <T,>(setter: (value: T) => void) =>
+    (value: T) => {
+      setter(value);
+      setPage(1);
+    };
 
   const handleSortChange = (column: string) => {
     setSortState((prev) => ({
@@ -64,8 +90,8 @@ export const SuppliersList = () => {
           </Button>
         </div>
 
-        <div className="px-5 py-4">
-          <div className="relative max-w-sm">
+        <div className="flex flex-wrap items-end gap-3 px-5 py-4">
+          <div className="relative w-full max-w-sm">
             <Search
               className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -74,10 +100,47 @@ export const SuppliersList = () => {
               type="search"
               placeholder="Search suppliers..."
               value={search}
-              onChange={handleSearchChange}
+              onChange={(e) => handleFilterChange(setSearch)(e.target.value)}
               className="pl-8"
               aria-label="Search suppliers"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="supplier_status_filter">Status</Label>
+            <Select
+              value={active}
+              onValueChange={(val) => val && handleFilterChange(setActive)(val)}
+            >
+              <SelectTrigger id="supplier_status_filter" className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="supplier_category_filter">Category</Label>
+            <Select
+              value={category}
+              onValueChange={(val) => val && handleFilterChange(setCategory)(val)}
+            >
+              <SelectTrigger id="supplier_category_filter" className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All Categories</SelectItem>
+                {(categories ?? []).map((cat) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

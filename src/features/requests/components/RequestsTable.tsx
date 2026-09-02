@@ -45,10 +45,11 @@ const formatDate = (isoDate: string | null) => {
 };
 
 /**
- * Sort column names must match what the backend API accepts for `sort_by`.
- * Relation-based columns use snake_case keys the backend can resolve.
+ * Sort column names must match what the backend API accepts for `sort_by`
+ * (PurchaseRequestService::ALLOWED_SORTS). Relation display columns
+ * (End-User, Category) are not sortable server-side, so they are omitted.
  */
-const SORTABLE_COLUMNS = ['rf_number', 'requester_name', 'category_name', 'submitted_at', 'total_amount', 'status'];
+const SORTABLE_COLUMNS = ['rf_number', 'submitted_at', 'total_amount', 'status'];
 
 const TABLE_COLUMNS = [
   { key: 'rf_number', label: 'RF #' },

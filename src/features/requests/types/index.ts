@@ -1,4 +1,4 @@
-import type { PurchaseRequest, PurchaseRequestStatus } from '@/types';
+import type { Category, PurchaseRequest, PurchaseRequestStatus } from '@/types';
 
 /**
  * Feature-level alias for `PurchaseRequest`.
@@ -16,11 +16,13 @@ export { PurchaseRequestStatus as RequestStatus } from '@/types';
 
 export interface RequestFilters {
   search?: string;
+  status?: PurchaseRequestStatus;
+  category_id?: Category['id'];
   page?: number;
   per_page?: number;
   /** Column name to sort by (e.g. 'rf_number', 'submitted_at', 'total_amount', 'status') */
   sort_by?: string;
-  sort_dir?: 'asc' | 'desc';
+  sort_order?: 'asc' | 'desc';
 }
 
 export interface RequestSortState {

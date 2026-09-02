@@ -3,12 +3,13 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
 import type { ApiResponse, PaginatedResponse, PurchaseOrder, PurchaseOrderStatus } from '@/types';
 
-interface PurchaseOrderFilters {
+export interface PurchaseOrderFilters {
   search?: string;
+  status?: PurchaseOrderStatus;
   page?: number;
   per_page?: number;
   sort_by?: string;
-  sort_dir?: 'asc' | 'desc';
+  sort_order?: 'asc' | 'desc';
 }
 
 interface PoStatusPayload {
