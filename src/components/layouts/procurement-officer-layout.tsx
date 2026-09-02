@@ -1,4 +1,3 @@
-import { Outlet } from 'react-router-dom';
 import {
   Users,
   FileText,
@@ -11,6 +10,8 @@ import {
   ScrollText,
   History,
 } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { AppSidebarLayout } from './app-sidebar-layout';
 
 const NAV = [
@@ -33,7 +34,9 @@ const ProcurementOfficerLayout = () => (
     roleName="PPU Personnel"
     requestsPathPrefix="/procurement-officer/requests"
   >
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
   </AppSidebarLayout>
 );
 

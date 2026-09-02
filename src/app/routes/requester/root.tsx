@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { RequesterLayout } from '@/components/layouts';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { RequesterLayout } from '@/components/layouts';
 
 const RequesterRootLayout = () => {
   return (

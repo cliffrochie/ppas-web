@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   createColumnHelper,
   flexRender,
@@ -6,6 +5,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Eye } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,8 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/utils';
 import type { AuditEvent, AuditLog } from '@/types';
+import { cn } from '@/utils';
 
 // ─── Event badge ──────────────────────────────────────────────────────────────
 

@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/utils';
 import type { PurchaseOrder, PurchaseOrderStatus } from '@/types';
+import { cn } from '@/utils';
 import { PO_STATUS_LABELS, PO_STATUS_STYLES } from './po-status';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────

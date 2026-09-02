@@ -1,10 +1,8 @@
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
-import { useLogout } from '@/features/auth';
-import { NotificationBell } from '@/features/notifications';
+import ppasLogo from '@/assets/ppas-logo.svg';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import ppasLogo from '@/assets/ppas-logo.svg';
+import { useLogout } from '@/features/auth';
+import { NotificationBell } from '@/features/notifications';
+import { useAuthStore } from '@/stores/authStore';
 
 interface RequesterLayoutProps {
   children: ReactNode;

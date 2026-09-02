@@ -11,8 +11,8 @@ import {
 import { RequestsPagination } from '@/features/requests';
 import { AuditEvent } from '@/types';
 import { useAuditLogs } from '../api/audit-logs';
-import { AuditLogsTable } from './AuditLogsTable';
 import type { AuditLogFilters } from '../types';
+import { AuditLogsTable } from './AuditLogsTable';
 
 const DEFAULT_PER_PAGE = 10;
 const ALL_EVENTS = '__all__';

@@ -12,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { cn } from '@/utils';
 import type { LoginLog, LoginStatus } from '@/types';
+import { cn } from '@/utils';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 

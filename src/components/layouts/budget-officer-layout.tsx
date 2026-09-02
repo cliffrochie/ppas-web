@@ -1,5 +1,6 @@
-import { Outlet } from 'react-router-dom';
 import { Users, FileText, LayoutDashboard, ShoppingCart, ScrollText } from 'lucide-react';
+import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { AppSidebarLayout } from './app-sidebar-layout';
 
 const BUDGET_OFFICER_NAV = [
@@ -17,7 +18,9 @@ const BudgetOfficerLayout = () => (
     roleName="Budget Officer"
     requestsPathPrefix="/budget-officer/requests"
   >
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
   </AppSidebarLayout>
 );
 

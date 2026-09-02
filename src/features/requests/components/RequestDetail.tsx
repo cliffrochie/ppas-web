@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
 import { Check, File, FileText, Image } from 'lucide-react';
-import { cn } from '@/utils';
+import type { ReactNode } from 'react';
 import { RichTextContent } from '@/components/ui/rich-text-content';
 import type { PurchaseRequest, PurchaseRequestStatus, PrStatusHistory, User } from '@/types';
+import { cn } from '@/utils';
 import { RequestStatusBadge } from './RequestStatusBadge';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────

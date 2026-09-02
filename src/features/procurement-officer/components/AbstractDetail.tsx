@@ -1,9 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Link } from 'react-router-dom';
-import { Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,11 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useUsersInfinite } from '@/features/requests';
 import { useDebounce } from '@/hooks';
 import { useAuthorization } from '@/lib/authorization';
-import { useUsersInfinite } from '@/features/requests';
 import type { AbstractOfQuotation, AbstractStatus } from '@/types';
 import { useUpdateAbstractOfQuotation } from '../api/procurement';
+import {
+  abstractEditSchema as editSchema,
+  type AbstractEditValues as EditValues,
+} from '../schemas/abstractSchema';
 import { AbstractStatusBadge } from './AbstractsTable';
 import { SearchCombobox } from './SearchCombobox';
 
@@ -47,16 +50,6 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
     <div className="p-4 sm:p-6">{children}</div>
   </div>
 );
-
-const editSchema = z.object({
-  prepared_by_id: z.number({ message: 'Please select a preparer' }).int().positive(),
-  recommended_supplier: z.string().optional(),
-  recommended_amount: z.number().optional(),
-  status: z.enum(['draft', 'approved']),
-  approved_at: z.string().optional(),
-});
-
-type EditValues = z.infer<typeof editSchema>;
 
 const ABSTRACT_STATUS_OPTIONS: AbstractStatus[] = ['draft', 'approved'];
 

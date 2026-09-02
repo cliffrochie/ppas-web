@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
+import ppasLogo from '@/assets/ppas-logo.svg';
 import { AuthLayout } from '@/components/layouts';
 import { LoginForm } from '@/features/auth';
-import ppasLogo from '@/assets/ppas-logo.svg';
 
 const LoginPage = () => {
   return (

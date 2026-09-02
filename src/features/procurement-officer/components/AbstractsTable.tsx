@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/utils';
 import type { AbstractOfQuotation, AbstractStatus } from '@/types';
+import { cn } from '@/utils';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 

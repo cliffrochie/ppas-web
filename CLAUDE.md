@@ -37,7 +37,9 @@ VITE_API_URL=http://localhost:8000/api/v1   # Laravel backend base URL
 VITE_SENTRY_DSN=                            # Optional Sentry error tracking
 ```
 
-The `VITE_API_URL` is read by `src/lib/api-client.ts` as the Axios `baseURL`. All feature API calls are relative to this base (e.g. `GET /requests` → `http://localhost:8000/api/v1/requests`).
+The `VITE_API_URL` is read by `src/lib/api-client.ts` as the Axios `baseURL`. All feature API calls are relative to this base (e.g. `GET /purchase-requests` → `http://localhost:8000/api/v1/purchase-requests`).
+
+> `.env` is git-ignored (`.env`, `.env.*`, except `.env.example`). Never commit real values — see `blueprint/dev-guidelines/security.md`.
 
 ---
 
@@ -57,67 +59,86 @@ ppas-web/
 │   │   ├── router.tsx              # All routes (see Routing section)
 │   │   └── routes/                 # Thin route pages (lazy-loaded)
 │   │       ├── landing.tsx         # Public landing page (/)
-│   │       ├── not-found.tsx       # 404 catch-all
+│   │       ├── not-found.tsx       # 404 catch-all (*)
+│   │       ├── forbidden.tsx       # 403 page (/403)
 │   │       ├── auth/
 │   │       │   ├── login.tsx
 │   │       │   └── register.tsx
 │   │       ├── app/
-│   │       │   ├── root.tsx        # Shared dashboard shell layout
+│   │       │   ├── root.tsx        # Shared dashboard shell + ErrorBoundary
 │   │       │   └── dashboard.tsx   # /dashboard (general)
 │   │       ├── requester/
-│   │       │   ├── root.tsx        # Requester sidebar layout
+│   │       │   ├── root.tsx        # Requester layout + ErrorBoundary
 │   │       │   ├── requests.tsx    # /requests
 │   │       │   ├── requests-create.tsx  # /requests/new
 │   │       │   ├── requests-detail.tsx  # /requests/:id
 │   │       │   └── requests-edit.tsx    # /requests/:id/edit
 │   │       ├── bac/
-│   │       │   ├── root.tsx        # BAC sidebar layout
+│   │       │   ├── root.tsx        # BAC layout + ErrorBoundary
 │   │       │   ├── dashboard.tsx   # /bac/dashboard
 │   │       │   ├── requests.tsx    # /bac/requests
 │   │       │   └── requests-detail.tsx  # /bac/requests/:id
 │   │       ├── budget-officer/
-│   │       │   ├── root.tsx        # Budget Officer sidebar layout
+│   │       │   ├── root.tsx        # Budget Officer layout + ErrorBoundary
 │   │       │   ├── dashboard.tsx   # /budget-officer/dashboard
 │   │       │   ├── requests.tsx    # /budget-officer/requests
-│   │       │   └── requests-detail.tsx
+│   │       │   ├── requests-detail.tsx
+│   │       │   └── audit-logs.tsx  # /budget-officer/audit-logs
 │   │       └── procurement-officer/
-│   │           ├── root.tsx        # Procurement Officer sidebar layout
-│   │           ├── dashboard.tsx   # /procurement-officer/dashboard
-│   │           ├── requests.tsx    # /procurement-officer/requests
-│   │           ├── requests-detail.tsx
-│   │           ├── purchase-orders.tsx        # /procurement-officer/purchase-orders
-│   │           ├── purchase-orders-detail.tsx
-│   │           ├── suppliers.tsx              # /procurement-officer/suppliers
-│   │           ├── suppliers-create.tsx
-│   │           ├── suppliers-detail.tsx
-│   │           └── suppliers-edit.tsx
+│   │           ├── root.tsx        # Procurement Officer layout + ErrorBoundary
+│   │           ├── dashboard.tsx
+│   │           ├── requests.tsx / requests-detail.tsx
+│   │           ├── purchase-orders.tsx / purchase-orders-detail.tsx
+│   │           ├── suppliers.tsx / suppliers-create.tsx / suppliers-detail.tsx / suppliers-edit.tsx
+│   │           ├── rfqs.tsx / rfqs-detail.tsx
+│   │           ├── abstracts.tsx / abstracts-detail.tsx
+│   │           ├── bac-resolutions.tsx / bac-resolutions-detail.tsx
+│   │           ├── notices-of-award.tsx / notices-of-award-detail.tsx
+│   │           ├── audit-logs.tsx
+│   │           └── login-logs.tsx
 │   │
 │   ├── features/                   # Feature modules (one per domain/role)
 │   │   ├── auth/
 │   │   │   ├── api/auth.ts         # Login, logout, register mutations
 │   │   │   ├── components/         # LoginForm, RegisterForm
-│   │   │   ├── schemas/authSchema.ts  # Zod validation schemas
+│   │   │   ├── schemas/authSchema.ts  # Zod schemas (loginSchema, registerSchema)
 │   │   │   ├── types/index.ts      # LoginCredentials, RegisterPayload, etc.
 │   │   │   └── index.ts
 │   │   ├── requests/               # Requester feature (purchase request CRUD)
 │   │   │   ├── api/
-│   │   │   │   ├── requests.ts     # CRUD + attachment upload hooks
-│   │   │   │   └── categories.ts   # Reference data (stale 5 min)
+│   │   │   │   ├── requests.ts     # CRUD + items + attachments + status histories
+│   │   │   │   ├── categories.ts   # Reference data (stale 5 min)
+│   │   │   │   └── users.ts        # useUsersInfinite (end-user picker)
 │   │   │   ├── components/         # RequestList, RequestDetail, CreateRequestForm, etc.
+│   │   │   ├── schemas/requestSchema.ts  # createRequestSchema
 │   │   │   ├── types/index.ts      # Request, RequestFilters, CreateRequestPayload
 │   │   │   └── index.ts
 │   │   ├── bac/
-│   │   │   ├── api/requests.ts     # useUpdateRequestStatus (PATCH /requests/:id/status)
-│   │   │   └── components/         # BacDashboard, BacRequestList, BacRequestDetail
+│   │   │   ├── api/requests.ts     # useUpdateRequestStatus (PATCH /purchase-requests/:id)
+│   │   │   ├── components/         # BacDashboard, BacRequestList, BacRequestDetail
+│   │   │   └── index.ts
 │   │   ├── budget-officer/
-│   │   │   ├── api/requests.ts     # useUpdateRequestStatus (PATCH /requests/:id/status)
-│   │   │   └── components/         # BudgetOfficerRequestDetail
-│   │   └── procurement-officer/
-│   │       ├── api/
-│   │       │   ├── requests.ts     # useUpdateRequestStatus (PATCH /requests/:id/status)
-│   │       │   ├── purchase-orders.ts  # PO list, detail, status update
-│   │       │   └── suppliers.ts    # Supplier CRUD (multipart create)
-│   │       ├── components/         # ProcurementRequestDetail, PurchaseOrders*, Suppliers*
+│   │   │   ├── api/requests.ts     # useUpdateRequestStatus (PATCH /purchase-requests/:id)
+│   │   │   ├── components/         # BudgetOfficerRequestDetail
+│   │   │   └── index.ts
+│   │   ├── procurement-officer/
+│   │   │   ├── api/               # requests, purchase-orders, suppliers, rfqs, procurement
+│   │   │   ├── components/        # ProcurementRequestDetail, PurchaseOrders*, Suppliers*,
+│   │   │   │                      #   Rfqs*, Abstracts*, BacResolutions*, NoticesOfAward*
+│   │   │   ├── schemas/           # rfqSchema, abstractSchema, bacResolutionSchema,
+│   │   │   │                      #   noticeOfAwardSchema, supplierSchema
+│   │   │   └── index.ts
+│   │   ├── dashboard/             # useDashboard (GET /dashboard) — shared KPI feed
+│   │   │   ├── api/dashboard.ts
+│   │   │   └── index.ts
+│   │   ├── monitoring/           # Audit log + login log views
+│   │   │   ├── api/               # audit-logs.ts, login-logs.ts
+│   │   │   ├── components/        # AuditLogs*, LoginLogs*
+│   │   │   ├── types/index.ts
+│   │   │   └── index.ts
+│   │   └── notifications/
+│   │       ├── api/notifications.ts   # useNotifications, useMarkNotificationRead
+│   │       ├── components/NotificationBell.tsx
 │   │       └── index.ts
 │   │
 │   ├── components/
@@ -136,7 +157,7 @@ ppas-web/
 │   │
 │   ├── lib/                        # Core integration layer
 │   │   ├── api-client.ts           # Axios instance + interceptors (see API Client section)
-│   │   ├── auth.tsx                # <ProtectedRoute> component
+│   │   ├── auth.tsx                # <ProtectedRoute> + <RoleProtectedRoute>
 │   │   ├── authorization.tsx       # useAuthorization() hook (role checks)
 │   │   └── react-query.ts          # QueryClient config
 │   │
@@ -169,8 +190,8 @@ ppas-web/
 │       ├── setup.ts                # Vitest + jest-dom setup
 │       └── utils.tsx               # Custom render with providers
 │
-├── .env                            # Local env (gitignored)
-├── .env.example                    # Env template
+├── .env                            # Local env — git-ignored (see security.md)
+├── .env.example                    # Env template (committed)
 ├── components.json                 # Shadcn config
 ├── vite.config.ts
 ├── tsconfig.app.json
@@ -240,7 +261,7 @@ interface PaginatedResponse<T> {
 interface ApiError {
   data: null;
   message: string;
-  errors: Record<string, string[]>;  // field -> ["error message"]
+  errors: Record<string, string[]> | null;  // field -> ["error message"]
 }
 ```
 
@@ -251,13 +272,14 @@ The helper `isApiValidationError(error)` in `src/types/index.ts` narrows the err
 ### Authentication Flow
 
 **Login** (`POST /auth/login`)
-- Payload: `{ identifier: string, password: string }` — `identifier` accepts either username or email
+- Payload: `{ email: string, password: string }` (`LoginCredentials`)
 - Response: `ApiResponse<{ token: string, user: User }>`
-- On success: token and user object are stored in Zustand (`useAuthStore.setAuth(token, user)`)
-- Frontend then navigates to `/requests`
+- On success: `useAuthStore.setAuth(token, user)`, then `useLogin` navigates by `user.role.name`:
+  `procurement_officer` → `/procurement-officer/dashboard`, `budget_officer` → `/budget-officer/dashboard`,
+  `bac_secretariat` → `/bac/dashboard`, `requester` (and any other) → `/requests`
 
 **Logout** (`DELETE /auth/logout`)
-- No payload required; the Bearer token in the request header identifies the session
+- No payload; the Bearer token in the request header identifies the session
 - On success (or error): clears Zustand store and QueryClient cache, navigates to `/login`
 
 **Register** (`POST /auth/register`)
@@ -267,32 +289,34 @@ The helper `isApiValidationError(error)` in `src/types/index.ts` narrows the err
 **Auth Store** (`src/stores/authStore.ts`):
 - Persisted to `localStorage` under the key `auth-storage`
 - `hasHydrated` flag prevents flash-of-unauthenticated-content on page load
-- `user.role.name` is used for role-based access checks
+- `user.role.name` (a snake_case slug — see Role-to-Route Mapping) drives all UI access checks
 
 ---
 
 ### Route Protection
 
-`<ProtectedRoute>` in `src/lib/auth.tsx` wraps all authenticated routes.
+`src/lib/auth.tsx` exports two guards:
+
+- **`<ProtectedRoute>`** — waits for `hasHydrated`, then redirects to `/login` if not authenticated. Wraps every authenticated route.
+- **`<RoleProtectedRoute allowedRoles={[...]}>`** — nested inside `<ProtectedRoute>`; redirects to `/403` if `user.role.name` is not in `allowedRoles`.
 
 ```
-GET /login  →  public
-GET /register  →  public
-GET /dashboard  →  ProtectedRoute
-GET /requests/*  →  ProtectedRoute
-GET /bac/*  →  ProtectedRoute
-GET /budget-officer/*  →  ProtectedRoute
-GET /procurement-officer/*  →  ProtectedRoute
+/  /login  /register  /403  *(404)   →  public
+/dashboard                            →  ProtectedRoute
+/requests/*                           →  ProtectedRoute + RoleProtectedRoute ['requester']
+/bac/*                                →  ProtectedRoute + RoleProtectedRoute ['bac_secretariat']
+/budget-officer/*                     →  ProtectedRoute + RoleProtectedRoute ['budget_officer']
+/procurement-officer/*                →  ProtectedRoute + RoleProtectedRoute ['procurement_officer']
 ```
 
-Role-level access control uses `useAuthorization()` from `src/lib/authorization.tsx`:
+Role checks use `useAuthorization()` from `src/lib/authorization.tsx`:
 
 ```ts
 const { hasRole } = useAuthorization();
-if (hasRole(['BAC Secretary'])) { ... }
+if (hasRole(['bac_secretariat'])) { ... }
 ```
 
-The `role.name` string checked against the `role` relation on the `User` object returned by the login endpoint.
+`hasRole` compares against `user.role.name` on the `User` returned by the login endpoint. UI role checks are UX only — the backend remains authoritative.
 
 ---
 
@@ -307,42 +331,74 @@ All paths are relative to `VITE_API_URL` (e.g. `/api/v1`).
 | `DELETE` | `/auth/logout` | `features/auth/api/auth.ts` |
 | `POST` | `/auth/register` | `features/auth/api/auth.ts` |
 
+> The backend resources are flat top-level collections (`/purchase-requests`, `/pr-attachments`,
+> `/purchase-request-items`, `/pr-status-histories`) — child records carry the parent id in the
+> body/params, not the URL path.
+
 ### Purchase Requests (Requester)
 | Method | Path | Hook | Notes |
 |---|---|---|---|
-| `GET` | `/requests` | `useRequests(filters)` | Paginated; supports `search`, `page`, `per_page`, `sort_by`, `sort_dir` |
-| `GET` | `/requests/:id` | `useRequest(id)` | Returns `PurchaseRequest` with eager relations |
-| `POST` | `/requests` | `useCreateRequest()` | `CreateRequestPayload` |
-| `PATCH` | `/requests/:id` | `useUpdateRequest(id)` | `UpdatePurchaseRequestPayload` |
-| `POST` | `/requests/:id/attachments` | `requestsApi.uploadAttachment()` | `multipart/form-data`; fields: `file`, `type` |
-| `DELETE` | `/requests/:id/attachments/:attachmentId` | `requestsApi.deleteAttachment()` | |
+| `GET` | `/purchase-requests` | `useRequests(filters)` | Paginated; `search`, `page`, `per_page`, `sort_by`, `sort_dir` |
+| `GET` | `/purchase-requests/:id` | `useRequest(id)` | `PurchaseRequest` with eager relations |
+| `POST` | `/purchase-requests` | `useCreateRequest()` | `CreateRequestPayload` (no inline `items`) |
+| `PATCH` | `/purchase-requests/:id` | `useUpdateRequest(id)` | `UpdatePurchaseRequestPayload` |
+| `POST` | `/purchase-request-items` | `useCreatePurchaseRequestItem()` | one call per line item, after the PR exists |
+| `DELETE` | `/purchase-request-items/:itemId` | `requestsApi.deleteItem()` | |
+| `POST` | `/pr-attachments` | `requestsApi.uploadAttachment()` | `multipart/form-data`; `purchase_request_id`, `file`, `type` |
+| `DELETE` | `/pr-attachments/:attachmentId` | `requestsApi.deleteAttachment()` | |
+| `GET` | `/pr-status-histories` | `useRequestStatusHistories(prId)` | filtered by `purchase_request_id` |
 
 ### Purchase Request Status Updates (BAC / Budget Officer / Procurement Officer)
 | Method | Path | Hook | Notes |
 |---|---|---|---|
-| `PATCH` | `/requests/:id/status` | `useUpdateRequestStatus(id)` | Payload: `{ status, remarks?, alobs_number? }` |
+| `PATCH` | `/purchase-requests/:id` | `useUpdateRequestStatus(id)` | `UpdatePrStatusPayload` — `{ status, remarks?, alobs_number? }` |
 
-All three roles (BAC, Budget Officer, Procurement Officer) call the same endpoint. The backend determines which transitions are valid per role.
+Each role has its own `api/requests.ts` with an identically-named `useUpdateRequestStatus` hook hitting
+the same endpoint. The backend decides which transitions are valid per role.
 
 ### Categories (Reference Data)
 | Method | Path | Hook | Notes |
 |---|---|---|---|
-| `GET` | `/categories` | `useCategories()` | Returns `Category[]`; cached 5 minutes |
+| `GET` | `/categories` | `useCategories()` | `Category[]`; `staleTime` 5 min |
+
+### Users (end-user picker)
+| Method | Path | Hook | Notes |
+|---|---|---|---|
+| `GET` | `/users` | `useUsersInfinite(search)` | infinite scroll; used by request/RFQ forms |
 
 ### Suppliers (Procurement Officer)
 | Method | Path | Hook | Notes |
 |---|---|---|---|
-| `GET` | `/suppliers` | `useSuppliers(filters)` | Paginated |
-| `GET` | `/suppliers/:id` | `useSupplier(id)` | |
-| `POST` | `/suppliers` | `useCreateSupplier()` | `multipart/form-data` (FormData) |
-| `PATCH` | `/suppliers/:id` | `useUpdateSupplier(id)` | `Partial<CreateSupplierPayload>` |
+| `GET` | `/suppliers` / `/suppliers/:id` | `useSuppliers` / `useSupplier` | |
+| `POST` | `/suppliers` | `useCreateSupplier()` | `multipart/form-data` |
+| `PATCH` | `/suppliers/:id` | `useUpdateSupplier(id)` | |
+| `POST` | `/supplier-documents` | `useUploadSupplierDocument()` | `multipart/form-data` |
 
 ### Purchase Orders (Procurement Officer)
 | Method | Path | Hook | Notes |
 |---|---|---|---|
-| `GET` | `/purchase-orders` | `usePurchaseOrders(filters)` | Paginated |
-| `GET` | `/purchase-orders/:id` | `usePurchaseOrder(id)` | |
-| `PATCH` | `/purchase-orders/:id/status` | `useUpdatePoStatus(id)` | Payload: `{ status: PurchaseOrderStatus, remarks? }` |
+| `GET` | `/purchase-orders` / `/purchase-orders/:id` | `usePurchaseOrders` / `usePurchaseOrder` | Paginated list; `purchase_request_id` filter supported |
+| `POST` | `/purchase-orders` | `useGeneratePurchaseOrder(prId)` | `{ purchase_request_id, prepared_by_id }` |
+| `PATCH` | `/purchase-orders/:id` | `useUpdatePoStatus(id)` | `{ status: PurchaseOrderStatus }` |
+
+### Procurement chain (Procurement Officer) — `rfqs.ts`, `procurement.ts`
+| Method | Path | Notes |
+|---|---|---|
+| `GET/POST/PATCH/DELETE` | `/rfqs`, `/rfqs/:id` | RFQ CRUD; `POST /rfqs/:id` for multipart update-with-file |
+| `GET/POST/PATCH/DELETE` | `/rfq-items`, `/rfq-items/:id` | RFQ line items (flat; `rfq_id` in body) |
+| `GET/POST/PATCH/DELETE` | `/canvass-responses`, `/canvass-responses/:id` | per supplier per RFQ item |
+| `GET/POST/PATCH/DELETE` | `/abstracts-of-quotation`, `/abstracts-of-quotation/:id` | AOQ; `POST /:id` for multipart update |
+| `GET/POST/PATCH/DELETE` | `/bac-resolutions`, `/bac-resolutions/:id` | BAC resolution; `POST /:id` for multipart update |
+| `GET/POST/PATCH/DELETE` | `/notices-of-award`, `/notices-of-award/:id` | NOA; `POST /:id` for multipart update |
+
+### Dashboard / Monitoring / Notifications
+| Method | Path | Hook | Notes |
+|---|---|---|---|
+| `GET` | `/dashboard` | `useDashboard(filters)` | KPI + chart feed (`features/dashboard`) |
+| `GET` | `/audit-logs` | `useAuditLogs(filters)` | `features/monitoring` |
+| `GET` | `/login-logs` | `useLoginLogs(filters)` | `features/monitoring` |
+| `GET` | `/notifications` | `useNotifications(filters)` | `features/notifications` |
+| `PATCH` | `/notifications/:id/mark-read` | `useMarkNotificationRead()` | |
 
 ---
 
@@ -409,12 +465,15 @@ Always has a `role` relation (eager-loaded by login endpoint). Role name drives 
 
 ## Role-to-Route Mapping
 
-| Role | Root path | Key capabilities |
+`role.name` slugs are snake_case — these exact strings are what `RoleProtectedRoute` /
+`hasRole()` check.
+
+| `role.name` | Root path | Key capabilities |
 |---|---|---|
-| Requester | `/requests` | Create, view, edit draft PRs; upload attachments |
-| BAC Secretary | `/bac` | View PRs, advance/return status |
-| Budget Officer | `/budget-officer` | View PRs, approve/disapprove budget (`alobs_number`, `fund_source`) |
-| Procurement Officer | `/procurement-officer` | View PRs, manage purchase orders and suppliers |
+| `requester` | `/requests` | Create, view, edit draft PRs; upload attachments |
+| `bac_secretariat` | `/bac` | View PRs, advance/return status |
+| `budget_officer` | `/budget-officer` | View PRs, approve/disapprove budget (`alobs_number`, `fund_source`); audit logs |
+| `procurement_officer` | `/procurement-officer` | View PRs; purchase orders, suppliers, RFQs, AOQ, BAC resolutions, NOA; audit/login logs |
 
 ---
 
@@ -425,15 +484,19 @@ When adding a new feature module, follow this pattern:
 ```
 src/features/<feature-name>/
 ├── api/
-│   └── <resource>.ts     # API functions + TanStack Query hooks
+│   └── <resource>.ts        # API service object + TanStack Query hooks (no useQuery/useMutation in components)
 ├── components/
-│   └── <Component>.tsx   # Feature UI components
+│   └── <Component>.tsx      # Feature UI components
+├── schemas/
+│   └── <entity>Schema.ts    # Zod schemas for this feature's forms (not inline in components)
 ├── types/
-│   └── index.ts          # Feature-local types (payload shapes, filters)
-└── index.ts              # Public barrel export
+│   └── index.ts             # Feature-local types (payload shapes, filters)
+└── index.ts                 # Public barrel export — required; cross-feature imports go through this only
 ```
 
-Then add the route in `src/app/router.tsx` (lazy import + route entry inside `<ProtectedRoute>`), and the corresponding thin page file in `src/app/routes/<role>/<page>.tsx`.
+Then add the route in `src/app/router.tsx` (lazy import + route entry inside `<ProtectedRoute>` / `<RoleProtectedRoute>`), and the corresponding thin page file in `src/app/routes/<role>/<page>.tsx`.
+
+The authoritative rules live in `blueprint/dev-guidelines/` (see `frontend.md`, `typescript.md`, `conventions.md`, `api-contract.md`). This file is the project-specific map; the blueprint wins on any conflict.
 
 Entity types that are shared across features belong in `src/types/entities/` with a re-export in `src/types/entities/index.ts`.
 

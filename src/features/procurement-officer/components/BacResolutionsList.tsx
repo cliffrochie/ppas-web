@@ -1,11 +1,11 @@
-import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { RequestsPagination } from '@/features/requests';
 import { useAuthorization } from '@/lib/authorization';
 import { useBacResolutions } from '../api/procurement';
-import { BacResolutionsTable } from './BacResolutionsTable';
 import { BacResolutionCreateForm } from './BacResolutionCreateForm';
+import { BacResolutionsTable } from './BacResolutionsTable';
 
 export const BacResolutionsList = () => {
   const { hasRole } = useAuthorization();

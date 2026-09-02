@@ -1,25 +1,16 @@
-import { useState, type ReactNode } from 'react';
 import { Check, File, FileText, Image, Printer } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { RichTextContent } from '@/components/ui/rich-text-content';
+import { Textarea } from '@/components/ui/textarea';
+import { RequestStatusBadge, useRequestStatusHistories } from '@/features/requests';
+import type { PurchaseRequest, PurchaseRequestStatus, PrStatusHistory, User } from '@/types';
 import { cn } from '@/utils';
-import { api } from '@/lib/api-client';
-import { useAuthStore } from '@/stores/authStore';
-import type {
-  PurchaseRequest,
-  PurchaseRequestStatus,
-  PrStatusHistory,
-  User,
-  ApiResponse,
-  PaginatedResponse,
-  PurchaseOrder,
-} from '@/types';
-import { RequestStatusBadge } from '@/features/requests';
-import { useRequestStatusHistories } from '@/features/requests/api/requests';
+import {
+  useGeneratePurchaseOrder,
+  usePurchaseOrderForRequest,
+} from '../api/purchase-orders';
 import { useUpdateRequestStatus } from '../api/requests';
 
 // ─── Formatters ────────────────────────────────────────────────────────────────
@@ -114,47 +105,6 @@ const LabelValue = ({ label, children }: { label: string; children: ReactNode })
     <div className="mt-1 text-sm text-gray-900">{children}</div>
   </div>
 );
-
-// ─── Generate PO mutation ──────────────────────────────────────────────────────
-
-const useGeneratePurchaseOrder = (requestId: number) => {
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
-
-  return useMutation({
-    mutationFn: (): Promise<ApiResponse<PurchaseOrder>> =>
-      api
-        .post('/purchase-orders', {
-          purchase_request_id: requestId,
-          prepared_by_id: user?.id,
-        })
-        .then((res) => res.data as ApiResponse<PurchaseOrder>),
-    onSuccess: () => {
-      toast.success('Purchase Order generated');
-      queryClient.invalidateQueries({ queryKey: ['requests', requestId] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-    },
-  });
-};
-
-/**
- * Looks up the Purchase Order generated for this PR, if any. `PurchaseRequestResource`
- * doesn't embed a `purchase_order` relation — it's a separate resource, filtered here
- * by `purchase_request_id` (a supported filter on `GET /purchase-orders`). Only queried
- * once the PR has actually reached a PO-bearing status.
- */
-const usePurchaseOrderForRequest = (requestId: number, enabled: boolean) => {
-  return useQuery({
-    queryKey: ['purchase-orders', { purchase_request_id: requestId }] as const,
-    queryFn: async (): Promise<PaginatedResponse<PurchaseOrder>> => {
-      const { data } = await api.get('/purchase-orders', {
-        params: { purchase_request_id: requestId, per_page: 1 },
-      });
-      return data;
-    },
-    enabled,
-  });
-};
 
 // ─── Procurement review panel ──────────────────────────────────────────────────
 

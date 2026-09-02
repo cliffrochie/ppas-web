@@ -16,8 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/utils';
-import { RequestStatusBadge } from './RequestStatusBadge';
 import type { Request, RequestSortState } from '../types';
+import { RequestStatusBadge } from './RequestStatusBadge';
 
 interface RequestsTableProps {
   data: Request[];
