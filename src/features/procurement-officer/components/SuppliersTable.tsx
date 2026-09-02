@@ -49,7 +49,8 @@ interface SuppliersTableProps {
 
 const columnHelper = createColumnHelper<Supplier>();
 
-const SORTABLE_COLUMNS = ['name', 'address_city', 'contact_person', 'phone', 'is_active'];
+// Must match SupplierService::ALLOWED_SORTS — `phone` is not a sortable column server-side.
+const SORTABLE_COLUMNS = ['name', 'address_city', 'contact_person', 'is_active'];
 
 const TABLE_COLUMNS = [
   { key: 'name', label: 'Supplier Name' },

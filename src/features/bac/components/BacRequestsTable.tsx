@@ -43,15 +43,11 @@ const formatDate = (isoDate: string | null) => {
   });
 };
 
-const SORTABLE_COLUMNS = [
-  'rf_number',
-  'category_name',
-  'requester_name',
-  'section_name',
-  'submitted_at',
-  'total_amount',
-  'status',
-];
+/**
+ * Only columns in PurchaseRequestService::ALLOWED_SORTS are sortable server-side.
+ * Relation display columns (Category, Requestor, Section) are omitted.
+ */
+const SORTABLE_COLUMNS = ['rf_number', 'submitted_at', 'total_amount', 'status'];
 
 const TABLE_COLUMNS = [
   { key: 'rf_number', label: 'RF #' },

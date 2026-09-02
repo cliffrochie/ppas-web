@@ -1,5 +1,6 @@
 export { RequestList } from './components/RequestList';
 export { RequestStatusBadge } from './components/RequestStatusBadge';
+export { REQUEST_STATUS_OPTIONS } from './components/request-status';
 export { RequestsPagination } from './components/RequestsPagination';
 export { CreateRequestForm } from './components/CreateRequestForm';
 export { useRequests, useCreateRequest, useRequest, useUpdateRequest } from './api/requests';
